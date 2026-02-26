@@ -20,6 +20,7 @@ import Animated, {
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import Colors from "@/constants/colors";
+import { useAdmin } from "@/contexts/AdminContext";
 
 const EXPERTISE_LEVELS = ["Beginner", "Intermediate", "Advanced", "Elite"];
 
@@ -75,8 +76,18 @@ export default function ProfileScreen() {
   const [selectedLevel, setSelectedLevel] = useState(1);
   const [selectedGoals, setSelectedGoals] = useState<string[]>(["hypertrophy"]);
   const [scienceMode, setScienceMode] = useState(true);
+  const { isLoggedIn } = useAdmin();
 
   const topPadding = Platform.OS === "web" ? 67 : insets.top;
+
+  const handleAdminPress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (isLoggedIn) {
+      router.push("/(admin)");
+    } else {
+      router.push("/(admin)/login");
+    }
+  };
 
   const toggleGoal = (id: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -263,6 +274,32 @@ export default function ProfileScreen() {
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(380).springify()}>
+          <Text style={styles.sectionTitle}>Administração</Text>
+          <Pressable
+            onPress={handleAdminPress}
+            style={({ pressed }) => [styles.adminBtn, { opacity: pressed ? 0.85 : 1 }]}
+          >
+            <View style={styles.adminBtnLeft}>
+              <View style={styles.adminIconBox}>
+                <Ionicons name="shield-checkmark-outline" size={17} color={isLoggedIn ? Colors.gold : Colors.muted} />
+              </View>
+              <View>
+                <Text style={styles.adminBtnLabel}>Painel de Administrador</Text>
+                <Text style={styles.adminBtnSub}>
+                  {isLoggedIn ? "Sessão ativa — gerenciar arquivos" : "Acesso restrito"}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.adminBtnRight}>
+              {isLoggedIn && (
+                <View style={styles.adminActiveDot} />
+              )}
+              <Ionicons name="chevron-forward" size={14} color={Colors.muted} />
+            </View>
+          </Pressable>
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(440).springify()}>
           <View style={styles.aboutCard}>
             <View style={styles.aboutRow}>
               <LinearGradient
@@ -563,5 +600,54 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textSecondary,
     lineHeight: 19,
+  },
+  adminBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: Colors.card,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: 20,
+  },
+  adminBtnLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+  },
+  adminIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 11,
+    backgroundColor: "rgba(212,175,55,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(212,175,55,0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  adminBtnLabel: {
+    fontFamily: "Outfit_500Medium",
+    fontSize: 15,
+    color: Colors.text,
+  },
+  adminBtnSub: {
+    fontFamily: "Outfit_400Regular",
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  adminBtnRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  adminActiveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#4ADE80",
   },
 });
