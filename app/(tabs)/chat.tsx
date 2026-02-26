@@ -41,10 +41,10 @@ function generateId(): string {
 }
 
 const SUGGESTED_QUESTIONS = [
-  "What is the optimal rep range for hypertrophy?",
-  "How do I program a strength peaking block?",
-  "Explain RIR and how to use it effectively",
-  "What does research say about training to failure?",
+  "Qual é a faixa de repetições ideal para hipertrofia?",
+  "Como programar um bloco de pico de força?",
+  "Explique RIR e como usar de forma eficaz",
+  "O que a pesquisa diz sobre treinar até a falha?",
 ];
 
 function TypingIndicator() {
@@ -150,10 +150,10 @@ export default function ChatScreen() {
         body: JSON.stringify({ messages: chatHistory }),
       });
 
-      if (!response.ok) throw new Error("Failed");
+      if (!response.ok) throw new Error("Falha na requisição");
 
       const reader = response.body?.getReader();
-      if (!reader) throw new Error("No body");
+      if (!reader) throw new Error("Sem corpo na resposta");
 
       const decoder = new TextDecoder();
       let buffer = "";
@@ -202,7 +202,7 @@ export default function ChatScreen() {
         {
           id: generateId(),
           role: "assistant",
-          content: "Sorry, I encountered an error. Please try again.",
+          content: "Ocorreu um erro. Por favor, tente novamente.",
         },
       ]);
     } finally {
@@ -229,8 +229,8 @@ export default function ChatScreen() {
             <Ionicons name="flask" size={18} color={Colors.gold} />
           </View>
           <View>
-            <Text style={styles.headerTitle}>AI Lab</Text>
-            <Text style={styles.headerSubtitle}>Scientific Training Assistant</Text>
+            <Text style={styles.headerTitle}>Lab IA</Text>
+            <Text style={styles.headerSubtitle}>Assistente Científico de Treino</Text>
           </View>
         </View>
         {messages.length > 0 && (
@@ -261,9 +261,9 @@ export default function ChatScreen() {
               >
                 <Ionicons name="flask" size={36} color={Colors.gold} />
               </LinearGradient>
-              <Text style={styles.emptyTitle}>Fitversum AI Lab</Text>
+              <Text style={styles.emptyTitle}>Lab IA Fitversum</Text>
               <Text style={styles.emptySubtitle}>
-                Ask anything about strength science, programming, or exercise physiology.
+                Pergunte qualquer coisa sobre ciência do treino, programação ou fisiologia do exercício.
               </Text>
               <View style={styles.suggestionsGrid}>
                 {SUGGESTED_QUESTIONS.map((q, i) => (
@@ -303,7 +303,7 @@ export default function ChatScreen() {
               style={styles.textInput}
               value={inputText}
               onChangeText={setInputText}
-              placeholder="Ask about strength science..."
+              placeholder="Pergunte sobre ciência do treino..."
               placeholderTextColor={Colors.muted}
               multiline
               maxLength={2000}

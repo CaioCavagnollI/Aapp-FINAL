@@ -25,37 +25,37 @@ import Colors from "@/constants/colors";
 const FEATURED_ITEMS = [
   {
     id: "1",
-    title: "Progressive Overload",
-    subtitle: "The cornerstone of hypertrophy",
-    tag: "Foundational",
+    title: "Sobrecarga Progressiva",
+    subtitle: "O pilar central da hipertrofia",
+    tag: "Fundamental",
     icon: "trending-up" as const,
-    question: "Explain progressive overload and how to implement it optimally for hypertrophy based on current research.",
+    question: "Explique a sobrecarga progressiva e como implementá-la de forma otimizada para hipertrofia com base na pesquisa atual.",
   },
   {
     id: "2",
-    title: "RPE & Autoregulation",
-    subtitle: "Train smarter, not just harder",
-    tag: "Intermediate",
+    title: "RPE e Autorregulação",
+    subtitle: "Treine com mais inteligência",
+    tag: "Intermediário",
     icon: "pulse" as const,
-    question: "What is RPE-based training and how does autoregulation optimize strength gains compared to fixed percentage programs?",
+    question: "O que é treino baseado em RPE e como a autorregulação otimiza os ganhos de força em comparação a programas com percentuais fixos?",
   },
   {
     id: "3",
-    title: "Motor Unit Recruitment",
-    subtitle: "Neuromuscular science decoded",
-    tag: "Advanced",
+    title: "Recrutamento de Unidades Motoras",
+    subtitle: "Ciência neuromuscular desvendada",
+    tag: "Avançado",
     icon: "flash" as const,
-    question: "Explain motor unit recruitment, the size principle, and how it applies to exercise selection and rep ranges for maximal strength.",
+    question: "Explique o recrutamento de unidades motoras, o princípio do tamanho e como isso se aplica à seleção de exercícios e faixas de repetições para força máxima.",
   },
 ];
 
 const QUICK_TOPICS = [
-  { label: "Volume", icon: "layers-outline" as const, question: "What is the optimal weekly training volume for hypertrophy based on current research?" },
-  { label: "Rest Periods", icon: "timer-outline" as const, question: "What does the science say about optimal rest periods between sets for hypertrophy vs strength?" },
-  { label: "Frequency", icon: "calendar-outline" as const, question: "How many times per week should I train each muscle group for optimal hypertrophy?" },
-  { label: "Intensity", icon: "barbell-outline" as const, question: "What intensity (% of 1RM) should I train at for hypertrophy vs maximal strength?" },
-  { label: "Deload", icon: "battery-charging-outline" as const, question: "When and how should I deload? What does the research say about deload week strategies?" },
-  { label: "Periodization", icon: "git-branch-outline" as const, question: "Compare linear, undulating, and block periodization for intermediate lifters. Which is best?" },
+  { label: "Volume", icon: "layers-outline" as const, question: "Qual é o volume de treino semanal ideal para hipertrofia segundo as pesquisas atuais?" },
+  { label: "Intervalos", icon: "timer-outline" as const, question: "O que a ciência diz sobre os intervalos de descanso ideais entre séries para hipertrofia vs força?" },
+  { label: "Frequência", icon: "calendar-outline" as const, question: "Quantas vezes por semana devo treinar cada grupo muscular para otimizar a hipertrofia?" },
+  { label: "Intensidade", icon: "barbell-outline" as const, question: "Qual intensidade (% de 1RM) devo usar para hipertrofia vs força máxima?" },
+  { label: "Deload", icon: "battery-charging-outline" as const, question: "Quando e como fazer deload? O que as pesquisas dizem sobre estratégias de semana de deload?" },
+  { label: "Periodização", icon: "git-branch-outline" as const, question: "Compare periodização linear, ondulatória e em blocos para levantadores intermediários. Qual é a melhor?" },
 ];
 
 function StatCard({ value, label, icon }: { value: string; label: string; icon: string }) {
@@ -96,7 +96,7 @@ function FeaturedCard({ item, index }: { item: typeof FEATURED_ITEMS[0]; index: 
           <Text style={styles.featuredTitle}>{item.title}</Text>
           <Text style={styles.featuredSubtitle}>{item.subtitle}</Text>
           <View style={styles.featuredFooter}>
-            <Text style={styles.exploreText}>Ask the AI Lab</Text>
+            <Text style={styles.exploreText}>Perguntar ao Lab IA</Text>
             <Ionicons name="arrow-forward" size={14} color={Colors.gold} />
           </View>
         </LinearGradient>
@@ -144,7 +144,7 @@ export default function HomeScreen() {
         <Animated.View entering={FadeInDown.springify()}>
           <View style={styles.headerRow}>
             <View>
-              <Text style={styles.greeting}>Good training,</Text>
+              <Text style={styles.greeting}>Bom treino,</Text>
               <Text style={styles.appTitle}>Fitversum Lab</Text>
             </View>
             <LinearGradient
@@ -158,23 +158,23 @@ export default function HomeScreen() {
           <View style={styles.taglineRow}>
             <View style={styles.scienceBadge}>
               <Ionicons name="checkmark-circle" size={12} color={Colors.gold} />
-              <Text style={styles.scienceBadgeText}>Evidence-Based Science</Text>
+              <Text style={styles.scienceBadgeText}>Ciência Baseada em Evidências</Text>
             </View>
           </View>
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(80).springify()}>
           <View style={styles.statsRow}>
-            <StatCard value="gpt-5.2" label="AI Model" icon="sparkles-outline" />
-            <StatCard value="RAG" label="Governed" icon="shield-checkmark-outline" />
-            <StatCard value="1000+" label="Studies" icon="library-outline" />
+            <StatCard value="gpt-5.2" label="Modelo IA" icon="sparkles-outline" />
+            <StatCard value="RAG" label="Governado" icon="shield-checkmark-outline" />
+            <StatCard value="1000+" label="Estudos" icon="library-outline" />
           </View>
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(120).springify()}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Scientific Topics</Text>
-            <Text style={styles.sectionSubtitle}>Ask the AI Lab</Text>
+            <Text style={styles.sectionTitle}>Tópicos Científicos</Text>
+            <Text style={styles.sectionSubtitle}>Perguntar ao Lab IA</Text>
           </View>
         </Animated.View>
 
@@ -186,8 +186,8 @@ export default function HomeScreen() {
 
         <Animated.View entering={FadeInDown.delay(400).springify()}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Quick Consult</Text>
-            <Text style={styles.sectionSubtitle}>Tap to ask</Text>
+            <Text style={styles.sectionTitle}>Consulta Rápida</Text>
+            <Text style={styles.sectionSubtitle}>Toque para perguntar</Text>
           </View>
           <View style={styles.chipGrid}>
             {QUICK_TOPICS.map((item) => (
@@ -211,7 +211,7 @@ export default function HomeScreen() {
               style={styles.ctaGradient}
             >
               <Ionicons name="chatbubble-ellipses" size={18} color={Colors.black} />
-              <Text style={styles.ctaText}>Open AI Lab</Text>
+              <Text style={styles.ctaText}>Abrir Lab IA</Text>
               <Ionicons name="arrow-forward" size={16} color={Colors.black} />
             </LinearGradient>
           </Pressable>
