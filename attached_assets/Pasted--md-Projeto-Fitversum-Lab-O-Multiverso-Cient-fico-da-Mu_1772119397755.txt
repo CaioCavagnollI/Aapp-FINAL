@@ -1,0 +1,3098 @@
+````md
+## Projeto: **Fitversum Lab: O Multiverso Científico da Musculação**
+Você é um **Arquiteto, Engenheiro de Software e Desenvolvedor Full-stack Sênior**.
+Seu objetivo é **projetar, implementar e criar** um ** **ecossistema SaaS** (Web + PWA + APP mobile)** com **IA própria governda e baseada em RAG**. **Focado em **prescrição de treinamento de força auditável**, com **IA baseada em fontes controladas, loja digital, marketplace e admin panel**. Não é um app fitness comum: é um **ecossistema técnico de alta autoridade** para profissionais e instituições que exigem **evidência, governança e performance real. É um ecossistema técnico com fontes científicas controladas e monetização integrada. **Fitversum Lab** é a plataforma premium que transforma ciência em **prescrição do treinamento de força**. 
+
+** A regra é: **autoridade científica + rastreabilidade + monetização + alcançe + software escalável.**
+
+---
+
+"## Ciência aplicada. Software escalável. Autoridade. Monetização. Alcançe. Resultados mensuráveis.
+
+O **Fitversum Lab: O Multiverso Científico da Musculação** é um ecossistema SaaS que transforma conhecimento científico em **prescrição de treinamento de força padronizada, auditável e escalável**. Desenvolvida para profissionais, instituições e empresas que exigem **evidência, controle e performance real**. Uma plataforma única que integra **inteligência artificial científica**, prescrição baseada em evidência, marketplace acadêmico e modelos SaaS de monetização.
+
+* Prescrição validada por ciência
+* IA treinada com base autoral controlada
+* Escalabilidade profissional e institucional
+
+---
+
+## 0) Regra-mãe (Governança)
+- **Core** (chat/prescrição/scanner/explicações): **AUTORAL > CURADO > EXTERNO** (externo só se explicitamente permitido). **Core sem web**.
+- **Acadêmico**: web permitido **somente** em `/ai/academic-*` (PubMed/Crossref/OpenAlex/Unpaywall).
+- **Sem base suficiente**: fallback seguro.
+- **Auditoria**: `scan_id/citationId/job_id/submission_id/edit_id` + quotas + logs.
+
+---
+
+## 1) Estrutura do Monorepo
+```txt
+fitversum-lab/
+  apps/
+    web/                      # Next.js 14 App Router + PWA
+    api/                      # NestJS API + Worker (BullMQ)
+    mobile/                   # Expo (React Native) - app iOS/Android
+  packages/
+    contracts/                # types shared + DTOs (zod opcional)
+    ui/                       # componentes compartilhados (opcional P1)
+    config/                   # tsconfig/eslint/prettier (opcional)
+  infra/
+    supabase/
+      migrations/
+      policies/
+      seeds/
+    qdrant/
+      collections/
+    redis/
+      scripts/
+  docs/
+    SPEC.md
+    PRD_SCANNER.md
+    BACKLOG.md
+  scripts/
+    create-fitversum-v5.js
+    seed-dev.ts
+  .env.example
+  package.json
+  pnpm-workspace.yaml
+  turbo.json
+  README.md
+````
+
+---
+
+## 2) Root (workspace + turbo)
+
+### `package.json` (root)
+
+```json
+{
+  "name": "fitversum-lab",
+  "private": true,
+  "version": "5.0.0",
+  "packageManager": "pnpm@10.0.0",
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "dev:web": "pnpm --filter web dev",
+    "dev:api": "pnpm --filter api start:dev",
+    "dev:worker": "pnpm --filter api worker:dev",
+    "dev:mobile": "pnpm --filter mobile start",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0",
+    "prettier": "^3.4.0",
+    "typescript": "^5.7.0"
+  }
+}
+```
+
+### `pnpm-workspace.yaml`
+
+```yaml
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "infra/*"
+  - "scripts"
+```
+
+### `turbo.json`
+
+```json
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "dev": { "cache": false, "persistent": true },
+    "build": { "dependsOn": ["^build"], "outputs": ["dist/**", ".next/**"] },
+    "lint": {},
+    "typecheck": {}
+  }
+}
+```
+
+### `.env.example`
+
+```env
+# ===== APP =====
+NODE_ENV=development
+NEXT_PUBLIC_APP_NAME=Fitversum Lab
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:4000
+
+# ===== SUPABASE (WEB PUBLIC) =====
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+
+# ===== SUPABASE (API SERVER) =====
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+
+# ===== DB / OPTIONAL DIRECT URL =====
+DATABASE_URL=
+
+# ===== REDIS / UPSTASH =====
+REDIS_URL=
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+
+# ===== QDRANT =====
+QDRANT_URL=
+QDRANT_API_KEY=
+
+# ===== AI =====
+AI_PROVIDER=openai
+OPENAI_API_KEY=
+ANTHROPIC_API_KEY=
+RAG_MIN_SCORE=0.72
+RAG_MIN_DOCS=1
+RAG_MIN_HITS=2
+RAG_TOPK=6
+FEATURE_RAG_PROVIDER=stub
+
+# ===== SCANNER =====
+FEATURE_SCANNER_PROVIDER=stub
+SCANNER_IMAGE_QUALITY_MIN=0.60
+SCANNER_VISION_CONF_MIN=0.60
+SCANNER_TOP1_TOP2_DELTA_MIN=0.10
+
+# ===== STRIPE =====
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
+
+# ===== PAYPAL (OPTIONAL) =====
+PAYPAL_CLIENT_ID=
+PAYPAL_SECRET=
+
+# ===== APP/SECURITY =====
+CORS_ORIGIN=http://localhost:3000
+JWT_AUDIENCE=authenticated
+LOG_LEVEL=debug
+
+# ===== STORAGE / EXPORTS =====
+SUPABASE_BUCKET_ASSETS=assets
+SUPABASE_BUCKET_EXPORTS=exports
+SUPABASE_BUCKET_DOCS=docs
+```
+
+### `README.md`
+
+````md
+# Fitversum Lab | O Multiverso Científico da Musculação
+
+Monorepo SaaS (Web/PWA + Mobile + API/Worker) com IA (RAG governado), prescrição auditável, scanner, store, afiliados e admin.
+
+## Stack
+- Web/PWA: Next.js 14 (App Router), React, TS, Tailwind
+- Mobile: Expo (React Native)
+- API/Worker: NestJS + BullMQ
+- Supabase: Auth + Postgres + Storage + RLS
+- Qdrant: Vector DB
+- Redis/Upstash: rate-limit + queue
+- Stripe: checkout/webhooks
+
+## Setup
+```bash
+pnpm install
+cp .env.example .env.local
+pnpm dev
+````
+
+## Apps
+
+* Web: [http://localhost:3000](http://localhost:3000)
+* API: [http://localhost:4000](http://localhost:4000)
+* Mobile: pnpm dev:mobile
+
+````
+
+---
+
+## 3) packages/contracts (tipos compartilhados)
+
+### `packages/contracts/src/index.ts`
+```ts
+export * from "./access";
+export * from "./ai";
+export * from "./scanner";
+export * from "./academic";
+export * from "./editorial";
+````
+
+### `packages/contracts/src/access.ts`
+
+```ts
+export type Role =
+  | "visitor"
+  | "student"
+  | "client"
+  | "subscriber"
+  | "professional"
+  | "company"
+  | "affiliate"
+  | "admin";
+
+export type PlanTier = "free" | "pro" | "pro_plus" | "university" | "b2b";
+
+export interface AuthUserContext {
+  userId: string;
+  role: Role;
+  planTier: PlanTier;
+  institutionId?: string | null;
+  isFounder?: boolean;
+}
+```
+
+### `packages/contracts/src/ai.ts`
+
+```ts
+export interface AISource {
+  documentId: string;
+  title: string;
+  author?: string;
+  year?: number;
+  pageStart?: number;
+  pageEnd?: number;
+  chunkId: string;
+  score: number;
+  locator?: string;
+}
+
+export interface AIChatResponse {
+  answer: string;
+  sources: AISource[];
+  safety: {
+    ragUsed: boolean;
+    blocked: boolean;
+    reason?: string;
+  };
+  productSuggestion?: {
+    productId: string;
+    why: string;
+  };
+}
+```
+
+### `packages/contracts/src/scanner.ts`
+
+```ts
+export interface ScannerRequest {
+  assetId: string;
+  goal?: string;
+  constraints?: string[];
+  level?: "beginner" | "intermediate" | "advanced";
+  userSelected?: {
+    equipId?: string;
+    exerciseFamily?: string;
+  };
+}
+
+export type ScannerStatus = "OK" | "FALLBACK";
+
+export interface ScannerCitation {
+  citationId: string;
+  title: string;
+  locator?: string;
+  quote?: string;
+}
+
+export interface ScannerResponse {
+  status: ScannerStatus;
+  equipmentName?: string;
+  equipId?: string;
+  compatibleExercises?: string[];
+  muscles?: {
+    primeMovers: string[];
+    synergists: string[];
+    stabilizers: string[];
+  };
+  evidence?: {
+    citations: ScannerCitation[];
+    snippets?: string[];
+  };
+  assumptions?: string[];
+  confidenceScore?: number;
+  scanId: string;
+  message?: string;
+}
+```
+
+### `packages/contracts/src/editorial.ts`
+
+```ts
+export type EditorialSubmissionStatus =
+  | "submitted"
+  | "ai_ready"
+  | "in_review"
+  | "revision_requested"
+  | "delivered"
+  | "closed";
+
+export type EditorialJobType =
+  | "ai_precheck"
+  | "human_review"
+  | "mentor_advisor"
+  | "translation_precheck";
+
+export type EditorialJobStatus = "queued" | "running" | "done" | "failed";
+
+export type AdvisorServiceType =
+  | "paper_review"
+  | "advisor_mentorship"
+  | "academic_translation";
+
+export type ServiceMode =
+  | "simple"
+  | "mentorship"
+  | "translation"
+  | "translation_total";
+
+export interface CreateSubmissionRequest {
+  sourceAssetId: string;
+  title?: string;
+  notes?: string;
+  locale?: string;
+  serviceMode?: ServiceMode;
+  translationTotal?: boolean;
+}
+
+export interface SubmissionDocumentResponse {
+  submissionId: string;
+  originalCharCount: number;
+  budgets: {
+    ai: number;
+    advisor: number;
+    total: number;
+    usedAi: number;
+    usedAdvisor: number;
+    usedTotal: number;
+  };
+  originalText: string;
+  currentText: string;
+}
+
+export interface ApplyPatchRequest {
+  submissionId: string;
+  actorType: "ai" | "advisor";
+  patchText: string;
+}
+
+export interface ApplyPatchResponse {
+  ok: true;
+  removedChars: number;
+  budgets: SubmissionDocumentResponse["budgets"];
+  currentText: string;
+}
+
+export interface DownloadDeliverableResponse {
+  signedUrl: string;
+  expiresInSec: number;
+}
+```
+
+### `packages/contracts/src/academic.ts` (MVP compacto)
+
+```ts
+export interface AcademicPaper {
+  id?: string;
+  title: string;
+  year?: number | null;
+  authors?: any;
+  journal?: string | null;
+  doi?: string | null;
+  pmid?: string | null;
+  url?: string | null;
+  abstract?: string | null;
+  provider?: string | null;
+  oa?: any;
+}
+
+export interface AcademicSearchRequest {
+  q: string;
+  limit?: number;
+  providers?: ("pubmed" | "crossref" | "openalex" | "unpaywall")[];
+}
+
+export interface AcademicSearchResponse {
+  query: string;
+  items: AcademicPaper[];
+}
+
+export interface AcademicAnswerRequest {
+  question: string;
+  paperIds?: string[];
+  locale?: string;
+}
+
+export interface AcademicAnswerResponse {
+  answer: string;
+  citations: {
+    title: string;
+    doi?: string | null;
+    url?: string | null;
+    locator?: string | null;
+  }[];
+}
+
+export interface ReferenceFormatRequest {
+  style: "ABNT" | "APA" | "VANCOUVER";
+  items: AcademicPaper[];
+}
+
+export interface ReferenceFormatResponse {
+  style: string;
+  output: string;
+}
+```
+
+---
+
+## 4) apps/web (Next.js 14 App Router + PWA)
+
+### `apps/web/package.json`
+
+```json
+{
+  "name": "web",
+  "private": true,
+  "version": "5.0.0",
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.47.0",
+    "@stripe/stripe-js": "^4.6.0",
+    "next": "14.2.20",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.12",
+    "typescript": "^5.7.2"
+  }
+}
+```
+
+### Paleta (tema preto+dourado)
+
+`apps/web/src/app/globals.css`
+
+```css
+:root{--bg:#0B0B0C;--fg:#FFF;--gold:#D4AF37;--muted:#A1A1AA;--card:#111113;--border:#232327}
+html,body{background:var(--bg);color:var(--fg)} a{color:var(--gold)}
+```
+
+### Supabase (client)
+
+`apps/web/src/lib/supabase/client.ts`
+
+```ts
+import { createBrowserClient } from "@supabase/ssr";
+
+export function createClient() {
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
+```
+
+### Supabase (server)
+
+`apps/web/src/lib/supabase/server.ts`
+
+```ts
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+
+export function createServerSupabaseClient() {
+  const cookieStore = cookies();
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+        set(name: string, value: string, options: any) {
+          cookieStore.set({ name, value, ...options });
+        },
+        remove(name: string, options: any) {
+          cookieStore.set({ name, value: "", ...options });
+        }
+      }
+    }
+  );
+}
+```
+
+### Middleware (gating por sessão/plano/role com suporte a `client`)
+
+`apps/web/src/middleware.ts`
+
+```ts
+import { NextResponse, type NextRequest } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+
+type RouteRule = {
+  prefix: string;
+  auth?: boolean;
+  allowedPlans?: string[];
+  allowedRoles?: string[];
+};
+
+const ROUTE_RULES: RouteRule[] = [
+  { prefix: "/dashboard", auth: true },
+  { prefix: "/chat", auth: true, allowedPlans: ["free", "pro", "pro_plus", "b2b", "university"] },
+  { prefix: "/prescrever", auth: true, allowedPlans: ["pro", "pro_plus", "b2b", "university"] },
+  { prefix: "/scanner", auth: true, allowedPlans: ["pro", "pro_plus", "b2b", "university"] },
+  { prefix: "/uploads", auth: true },
+  { prefix: "/admin", auth: true, allowedRoles: ["admin"] }
+];
+
+function matchRule(pathname: string) {
+  return ROUTE_RULES.find((r) => pathname.startsWith(r.prefix));
+}
+
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next();
+  const pathname = req.nextUrl.pathname;
+  const rule = matchRule(pathname);
+  if (!rule) return res;
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return req.cookies.get(name)?.value;
+        },
+        set(name: string, value: string, options: any) {
+          res.cookies.set({ name, value, ...options });
+        },
+        remove(name: string, value: string, options: any) {
+          res.cookies.set({ name, value: "", ...options });
+        }
+      }
+    }
+  );
+
+  const { data: auth } = await supabase.auth.getUser();
+  const user = auth.user;
+
+  if (rule.auth && !user) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/login";
+    url.searchParams.set("next", pathname);
+    return NextResponse.redirect(url);
+  }
+
+  if (!user) return res;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, plan_tier")
+    .eq("user_id", user.id)
+    .single();
+
+  const role = profile?.role ?? "student";
+  const planTier = profile?.plan_tier ?? "free";
+
+  if (rule.allowedRoles && !rule.allowedRoles.includes(role)) {
+    return NextResponse.redirect(new URL("/dashboard?forbidden=role", req.url));
+  }
+
+  // Patch V5.4: role=client ignora bloqueio de plano em rotas liberadas
+  if (rule.allowedPlans && !rule.allowedPlans.includes(planTier) && role !== "client") {
+    return NextResponse.redirect(new URL("/pricing?forbidden=plan", req.url));
+  }
+
+  return res;
+}
+
+export const config = {
+  matcher: ["/dashboard/:path*", "/chat/:path*", "/prescrever/:path*", "/scanner/:path*", "/uploads/:path*", "/admin/:path*"]
+};
+```
+
+### Login page (Google + magic link)
+
+`apps/web/src/app/login/page.tsx`
+
+```tsx
+"use client";
+
+import { useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+
+export default function LoginPage() {
+  const supabase = createClient();
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState<string | null>(null);
+
+  async function signInWithGoogle() {
+    setLoading("google");
+    setMessage("");
+    const origin = window.location.origin;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${origin}/auth/callback` }
+    });
+    if (error) setMessage(error.message);
+    setLoading(null);
+  }
+
+  async function signInWithMagicLink(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading("email");
+    setMessage("");
+    const origin = window.location.origin;
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: `${origin}/auth/callback` }
+    });
+    if (error) setMessage(error.message);
+    else setMessage("Link mágico enviado.");
+    setLoading(null);
+  }
+
+  return (
+    <main className="mx-auto max-w-lg p-6">
+      <h1 className="text-2xl font-bold">Entrar</h1>
+      <div className="mt-4 space-y-4 rounded-xl border p-4">
+        <button onClick={signInWithGoogle} className="w-full rounded border px-3 py-2">
+          {loading === "google" ? "Conectando..." : "Entrar com Google"}
+        </button>
+
+        <form onSubmit={signInWithMagicLink} className="space-y-2">
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full rounded border px-3 py-2"
+            placeholder="seu@email.com"
+          />
+          <button className="w-full rounded border px-3 py-2">
+            {loading === "email" ? "Enviando..." : "Receber link mágico"}
+          </button>
+        </form>
+
+        {message && <p className="text-sm">{message}</p>}
+      </div>
+    </main>
+  );
+}
+```
+
+### Auth callback route (cria profile)
+
+`apps/web/src/app/auth/callback/route.ts`
+
+```ts
+import { NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const code = url.searchParams.get("code");
+  const next = url.searchParams.get("next") ?? "/dashboard";
+
+  const cookieStore = cookies();
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+        set(name: string, value: string, options: any) {
+          cookieStore.set({ name, value, ...options });
+        },
+        remove(name: string, options: any) {
+          cookieStore.set({ name, value: "", ...options });
+        }
+      }
+    }
+  );
+
+  if (code) {
+    await supabase.auth.exchangeCodeForSession(code);
+
+    const { data: auth } = await supabase.auth.getUser();
+    if (auth.user) {
+      await supabase.from("profiles").upsert(
+        {
+          user_id: auth.user.id,
+          name: auth.user.user_metadata?.full_name ?? auth.user.email ?? "Usuário",
+          role: "student",
+          plan_tier: "free",
+          locale: "pt-BR"
+        },
+        { onConflict: "user_id" }
+      );
+    }
+  }
+
+  return NextResponse.redirect(new URL(next, url.origin));
+}
+```
+
+### Affiliate click route (cookie tracking)
+
+`apps/web/src/app/api/affiliate/click/route.ts`
+
+```ts
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const aff = url.searchParams.get("aff");
+  const ref = url.searchParams.get("ref");
+  const targetType = url.searchParams.get("targetType");
+  const targetId = url.searchParams.get("targetId");
+  const next = url.searchParams.get("next") || "/";
+
+  if (aff) cookies().set("fv_aff", aff, { path: "/", maxAge: 60 * 60 * 24 * 30 });
+  if (ref) cookies().set("fv_aff_ref", ref, { path: "/", maxAge: 60 * 60 * 24 * 30 });
+  if (targetType) cookies().set("fv_aff_target_type", targetType, { path: "/", maxAge: 60 * 60 * 24 * 7 });
+  if (targetId) cookies().set("fv_aff_target_id", targetId, { path: "/", maxAge: 60 * 60 * 24 * 7 });
+
+  return NextResponse.redirect(new URL(next, url.origin));
+}
+```
+
+### Stripe (Next App Router)
+
+`apps/web/src/lib/stripe.ts`
+
+```ts
+import Stripe from "stripe";
+
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2024-06-20"
+});
+```
+
+`apps/web/src/app/api/stripe/checkout/route.ts`
+
+```ts
+import { NextResponse } from "next/server";
+import { stripe } from "@/lib/stripe";
+import { cookies } from "next/headers";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+
+export async function POST(req: Request) {
+  const body = await req.json();
+  const { priceId, mode = "subscription", successPath = "/dashboard", cancelPath = "/pricing" } = body;
+
+  const supabase = createServerSupabaseClient();
+  const { data: auth } = await supabase.auth.getUser();
+
+  if (!auth.user) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  const cookieStore = cookies();
+  const affiliateClickRef = cookieStore.get("fv_aff_ref")?.value ?? null;
+
+  const session = await stripe.checkout.sessions.create({
+    mode,
+    customer_email: auth.user.email,
+    line_items: [{ price: priceId, quantity: 1 }],
+    success_url: `${process.env.NEXT_PUBLIC_APP_URL}${successPath}`,
+    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}${cancelPath}`,
+    metadata: {
+      user_id: auth.user.id,
+      ...(affiliateClickRef ? { affiliate_click_ref: affiliateClickRef } : {})
+    }
+  });
+
+  return NextResponse.json({ url: session.url });
+}
+```
+
+`apps/web/src/app/api/stripe/webhook/route.ts`
+
+```ts
+import { headers } from "next/headers";
+import { NextResponse } from "next/server";
+import { stripe } from "@/lib/stripe";
+
+export async function POST(req: Request) {
+  const body = await req.text();
+  const sig = headers().get("stripe-signature");
+  if (!sig) return new NextResponse("Missing stripe-signature", { status: 400 });
+
+  let event: any;
+  try {
+    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
+  } catch (err: any) {
+    return new NextResponse(`Webhook Error: ${err.message}`, { status: 400 });
+  }
+
+  // Minimal: forward conversion; produção: persist orders/subscriptions/entitlements na API
+  switch (event.type) {
+    case "checkout.session.completed": {
+      const session = event.data.object as any;
+      const affiliateClickRef = session.metadata?.affiliate_click_ref ?? null;
+
+      if (affiliateClickRef) {
+        try {
+          await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/affiliates/conversion`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              clickRef: affiliateClickRef,
+              subscriptionId: session.subscription ?? null,
+              grossAmountCents: session.amount_total ?? 0
+            })
+          });
+        } catch {}
+      }
+      break;
+    }
+    case "customer.subscription.updated":
+    case "customer.subscription.deleted":
+    case "invoice.payment_failed":
+      break;
+  }
+
+  return NextResponse.json({ received: true });
+}
+```
+
+### `/uploads` (aluno/cliente) — UI
+
+`apps/web/src/app/uploads/page.tsx`
+
+```tsx
+import UploadsClient from "./uploads-client";
+
+export default function Page() {
+  return (
+    <main className="mx-auto max-w-6xl p-6">
+      <h1 className="text-2xl font-bold">Uploads</h1>
+      <p className="mt-2 text-sm opacity-80">Envie anamnese ou arquivo acadêmico. Tudo fica dentro do app.</p>
+      <div className="mt-6"><UploadsClient /></div>
+    </main>
+  );
+}
+```
+
+`apps/web/src/app/uploads/uploads-client.tsx`
+
+```tsx
+"use client";
+import { useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
+async function token() {
+  const s = createClient();
+  const { data } = await s.auth.getSession();
+  if (!data.session?.access_token) throw new Error("no_session");
+  return data.session.access_token;
+}
+async function apiPost(path: string, body: any) {
+  const t = await token();
+  const r = await fetch(`${API}${path}`, {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${t}` },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+export default function UploadsClient() {
+  const supa = createClient();
+  const [mode, setMode] = useState<"anamnesis" | "academic">("anamnesis");
+  const [file, setFile] = useState<File | null>(null);
+  const [notes, setNotes] = useState("");
+
+  async function send() {
+    if (!file) return;
+
+    const p = await apiPost("/uploads/client/presign", {
+      bucket: "assets",
+      fileName: file.name,
+      mimeType: file.type || "application/octet-stream"
+    });
+
+    const up = await supa.storage.from(p.bucket).upload(p.storagePath, file, {
+      contentType: file.type || "application/octet-stream",
+      upsert: false
+    });
+    if (up.error) throw up.error;
+
+    const c = await apiPost("/uploads/client/commit", {
+      bucket: p.bucket,
+      storagePath: p.storagePath,
+      fileName: file.name,
+      mimeType: file.type,
+      sizeBytes: file.size
+    });
+
+    if (mode === "anamnesis") {
+      await apiPost("/training/anamneses/import-upload", { assetId: c.asset.id, notes });
+      alert("Anamnese enviada.");
+    } else {
+      await apiPost("/editorial/submissions", {
+        sourceAssetId: c.asset.id,
+        title: file.name,
+        notes,
+        serviceMode: "simple"
+      });
+      alert("Arquivo acadêmico enviado para orientação.");
+    }
+
+    setFile(null);
+    setNotes("");
+  }
+
+  return (
+    <div className="rounded-xl border p-4 space-y-3">
+      <div className="flex gap-2">
+        <button
+          className={`rounded border px-3 py-2 text-sm ${mode === "anamnesis" ? "bg-[var(--gold)] text-[var(--bg)]" : "text-[var(--gold)] border-[var(--gold)]"}`}
+          onClick={() => setMode("anamnesis")}
+        >Anamnese</button>
+        <button
+          className={`rounded border px-3 py-2 text-sm ${mode === "academic" ? "bg-[var(--gold)] text-[var(--bg)]" : "text-[var(--gold)] border-[var(--gold)]"}`}
+          onClick={() => setMode("academic")}
+        >Acadêmico</button>
+      </div>
+
+      <input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+      <textarea
+        className="w-full rounded border p-3 text-sm"
+        rows={3}
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        placeholder="Observações (opcional)"
+      />
+      <button
+        className="rounded border border-[var(--gold)] px-3 py-2 text-sm text-[var(--gold)] hover:bg-[var(--gold)] hover:text-[var(--bg)]"
+        onClick={send}
+        disabled={!file}
+      >Enviar</button>
+    </div>
+  );
+}
+```
+
+---
+
+## 5) apps/api (NestJS API + Worker)
+
+### `apps/api/package.json`
+
+```json
+{
+  "name": "api",
+  "private": true,
+  "version": "5.0.0",
+  "scripts": {
+    "start:dev": "nest start --watch",
+    "build": "nest build",
+    "start": "node dist/main.js",
+    "worker:dev": "ts-node -T src/worker.ts",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nestjs/common": "^10.4.9",
+    "@nestjs/core": "^10.4.9",
+    "@nestjs/platform-express": "^10.4.9",
+    "@nestjs/swagger": "^8.1.0",
+    "@supabase/supabase-js": "^2.47.0",
+    "@upstash/redis": "^1.34.3",
+    "@qdrant/js-client-rest": "^1.13.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "zod": "^3.24.1",
+    "bullmq": "^5.10.0",
+    "ioredis": "^5.5.0",
+    "diff-match-patch": "^1.0.5"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^10.4.8",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "ts-node": "^10.9.2"
+  }
+}
+```
+
+### `apps/api/src/main.ts`
+
+```ts
+import { NestFactory } from "@nestjs/core";
+import { ValidationPipe } from "@nestjs/common";
+import { AppModule } from "./app.module";
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule, { cors: true });
+
+  app.enableCors({
+    origin: process.env.CORS_ORIGIN?.split(",") ?? ["http://localhost:3000"],
+    credentials: true
+  });
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidUnknownValues: false
+    })
+  );
+
+  const port = Number(process.env.PORT ?? 4000);
+  await app.listen(port);
+  console.log(`✅ API running at http://localhost:${port}`);
+}
+bootstrap();
+```
+
+### `apps/api/src/app.module.ts`
+
+```ts
+import { Module } from "@nestjs/common";
+import { HealthModule } from "./modules/health/health.module";
+import { AiModule } from "./modules/ai/ai.module";
+import { ScannerModule } from "./modules/scanner/scanner.module";
+import { StoreModule } from "./modules/store/store.module";
+import { TrainingModule } from "./modules/training/training.module";
+import { ContentModule } from "./modules/content/content.module";
+import { AdminModule } from "./modules/admin/admin.module";
+import { AffiliatesModule } from "./modules/affiliates/affiliates.module";
+import { BillingModule } from "./modules/billing/billing.module";
+import { UploadsClientModule } from "./modules/uploads-client/uploads-client.module";
+import { EditorialModule } from "./modules/editorial/editorial.module";
+import { AcademicModule } from "./modules/academic/academic.module";
+
+@Module({
+  imports: [
+    HealthModule,
+    AiModule,
+    ScannerModule,
+    StoreModule,
+    TrainingModule,
+    ContentModule,
+    AdminModule,
+    AffiliatesModule,
+    BillingModule,
+    UploadsClientModule,
+    EditorialModule,
+    AcademicModule
+  ]
+})
+export class AppModule {}
+```
+
+---
+
+### Common decorators/guards
+
+`apps/api/src/common/decorators/current-user.decorator.ts`
+
+```ts
+import { createParamDecorator, ExecutionContext } from "@nestjs/common";
+import type { AuthUserContext } from "@fitversum/contracts";
+
+export const CurrentUser = createParamDecorator(
+  (_: unknown, ctx: ExecutionContext): AuthUserContext => {
+    const req = ctx.switchToHttp().getRequest();
+    return req.user;
+  }
+);
+```
+
+`apps/api/src/common/decorators/roles.decorator.ts`
+
+```ts
+import { SetMetadata } from "@nestjs/common";
+export const ROLES_KEY = "roles";
+export const Roles = (...roles: string[]) => SetMetadata(ROLES_KEY, roles);
+```
+
+`apps/api/src/common/decorators/plans.decorator.ts`
+
+```ts
+import { SetMetadata } from "@nestjs/common";
+export const PLANS_KEY = "plans";
+export const Plans = (...plans: string[]) => SetMetadata(PLANS_KEY, plans);
+```
+
+`apps/api/src/common/guards/auth.guard.ts`
+
+```ts
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/common";
+import { getSupabaseAdmin } from "../../lib/supabase/supabase-admin";
+
+@Injectable()
+export class AuthGuard implements CanActivate {
+  async canActivate(ctx: ExecutionContext): Promise<boolean> {
+    const req = ctx.switchToHttp().getRequest();
+    const authHeader = req.headers.authorization as string | undefined;
+
+    if (!authHeader?.startsWith("Bearer ")) throw new UnauthorizedException("Missing bearer token");
+    const token = authHeader.slice("Bearer ".length);
+
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase.auth.getUser(token);
+    if (error || !data.user) throw new UnauthorizedException("Invalid token");
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role, plan_tier, institution_id, is_founder")
+      .eq("user_id", data.user.id)
+      .single();
+
+    req.user = {
+      userId: data.user.id,
+      role: profile?.role ?? "student",
+      planTier: profile?.plan_tier ?? "free",
+      institutionId: profile?.institution_id ?? null,
+      isFounder: profile?.is_founder ?? false
+    };
+
+    return true;
+  }
+}
+```
+
+`apps/api/src/common/guards/roles.guard.ts`
+
+```ts
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { ROLES_KEY } from "../decorators/roles.decorator";
+
+@Injectable()
+export class RolesGuard implements CanActivate {
+  constructor(private reflector: Reflector) {}
+  canActivate(ctx: ExecutionContext): boolean {
+    const roles = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
+      ctx.getHandler(),
+      ctx.getClass()
+    ]);
+    if (!roles?.length) return true;
+
+    const req = ctx.switchToHttp().getRequest();
+    if (!roles.includes(req.user?.role)) throw new ForbiddenException("Role not allowed");
+    return true;
+  }
+}
+```
+
+`apps/api/src/common/guards/plans.guard.ts`
+
+```ts
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { PLANS_KEY } from "../decorators/plans.decorator";
+
+@Injectable()
+export class PlansGuard implements CanActivate {
+  constructor(private reflector: Reflector) {}
+  canActivate(ctx: ExecutionContext): boolean {
+    const plans = this.reflector.getAllAndOverride<string[]>(PLANS_KEY, [
+      ctx.getHandler(),
+      ctx.getClass()
+    ]);
+    if (!plans?.length) return true;
+
+    const req = ctx.switchToHttp().getRequest();
+    if (!plans.includes(req.user?.planTier)) throw new ForbiddenException("Plan not allowed");
+    return true;
+  }
+}
+```
+
+---
+
+### Supabase admin client
+
+`apps/api/src/lib/supabase/supabase-admin.ts`
+
+```ts
+import { createClient } from "@supabase/supabase-js";
+
+let _client: ReturnType<typeof createClient> | null = null;
+
+export function getSupabaseAdmin() {
+  if (_client) return _client;
+
+  _client = createClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false } }
+  );
+
+  return _client;
+}
+```
+
+---
+
+### Plan limits + quotas (com role=client)
+
+`apps/api/src/lib/plan/plan-limits.ts`
+
+```ts
+import type { PlanTier } from "@fitversum/contracts";
+
+export const PLAN_LIMITS: Record<PlanTier, {
+  aiMonthlyMessages: number | null;
+  workoutPrescriptionsMonthly: number | null;
+  maxStudents: number | null;
+  scannerEnabled: boolean;
+  commissionExempt?: boolean;
+}> = {
+  free: { aiMonthlyMessages: 5, workoutPrescriptionsMonthly: 0, maxStudents: 0, scannerEnabled: false, commissionExempt: false },
+  pro: { aiMonthlyMessages: null, workoutPrescriptionsMonthly: 5, maxStudents: 5, scannerEnabled: true, commissionExempt: false },
+  pro_plus: { aiMonthlyMessages: null, workoutPrescriptionsMonthly: null, maxStudents: null, scannerEnabled: true, commissionExempt: true },
+  university: { aiMonthlyMessages: null, workoutPrescriptionsMonthly: null, maxStudents: null, scannerEnabled: true, commissionExempt: true },
+  b2b: { aiMonthlyMessages: null, workoutPrescriptionsMonthly: null, maxStudents: null, scannerEnabled: true, commissionExempt: true }
+};
+```
+
+`apps/api/src/lib/usage/usage.service.ts`
+
+```ts
+import { ForbiddenException, Injectable } from "@nestjs/common";
+import type { AuthUserContext } from "@fitversum/contracts";
+import { getSupabaseAdmin } from "../supabase/supabase-admin";
+import { PLAN_LIMITS } from "../plan/plan-limits";
+
+type UsageKey = "ai_messages_count" | "workout_generations_count" | "scanner_scans_count";
+
+@Injectable()
+export class UsageService {
+  private getPeriodYM(date = new Date()) {
+    const y = date.getUTCFullYear();
+    const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+    return `${y}-${m}`;
+  }
+
+  private getLimitForKey(user: AuthUserContext, key: UsageKey): number | null {
+    // Patch V5.4: role=client (sem plano) com quotas próprias
+    if (user.role === "client") {
+      if (key === "ai_messages_count") return 20;
+      if (key === "scanner_scans_count") return null;
+      if (key === "workout_generations_count") return 0;
+    }
+
+    const plan = PLAN_LIMITS[user.planTier];
+    if (!plan) return null;
+
+    if (key === "ai_messages_count") return plan.aiMonthlyMessages;
+    if (key === "workout_generations_count") return plan.workoutPrescriptionsMonthly;
+    if (key === "scanner_scans_count") return plan.scannerEnabled ? null : 0;
+    return null;
+  }
+
+  async assertAndIncrement(user: AuthUserContext, key: UsageKey, increment = 1) {
+    const supabase = getSupabaseAdmin();
+    const periodYM = this.getPeriodYM();
+
+    const { data: row, error } = await supabase
+      .from("usage_counters_monthly")
+      .select("*")
+      .eq("user_id", user.userId)
+      .eq("period_ym", periodYM)
+      .maybeSingle();
+
+    if (error) throw new Error(error.message);
+
+    const currentRow =
+      row ??
+      (await supabase
+        .from("usage_counters_monthly")
+        .insert({ user_id: user.userId, period_ym: periodYM })
+        .select("*")
+        .single()).data;
+
+    const current = Number(currentRow?.[key] ?? 0);
+    const limit = this.getLimitForKey(user, key);
+
+    if (limit !== null && current + increment > limit) {
+      throw new ForbiddenException({
+        code: "quota_exceeded",
+        metric: key,
+        current,
+        increment,
+        limit,
+        periodYM
+      });
+    }
+
+    const patch: Record<string, number> = { [key]: current + increment };
+
+    const { error: updateError } = await supabase
+      .from("usage_counters_monthly")
+      .update(patch)
+      .eq("id", currentRow.id);
+
+    if (updateError) throw new Error(updateError.message);
+
+    return { ok: true, metric: key, current: current + increment, limit, periodYM };
+  }
+
+  async getCurrentUsage(user: AuthUserContext) {
+    const supabase = getSupabaseAdmin();
+    const periodYM = this.getPeriodYM();
+
+    const { data } = await supabase
+      .from("usage_counters_monthly")
+      .select("*")
+      .eq("user_id", user.userId)
+      .eq("period_ym", periodYM)
+      .maybeSingle();
+
+    return {
+      periodYM,
+      usage: data ?? {
+        ai_messages_count: 0,
+        workout_generations_count: 0,
+        scanner_scans_count: 0
+      }
+    };
+  }
+}
+```
+
+---
+
+### Rate limit (Upstash) — serviço base
+
+`apps/api/src/lib/rate-limit/upstash-rate-limit.service.ts`
+
+```ts
+import { Injectable } from "@nestjs/common";
+import { Redis } from "@upstash/redis";
+
+@Injectable()
+export class UpstashRateLimitService {
+  private redis: Redis | null = null;
+
+  private getClient() {
+    if (this.redis) return this.redis;
+    if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+      this.redis = new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN
+      });
+    }
+    return this.redis;
+  }
+
+  async hit(key: string, windowSeconds: number, maxHits: number) {
+    const redis = this.getClient();
+    if (!redis) {
+      return { allowed: true, count: 1, remaining: maxHits - 1, resetInSec: windowSeconds, bypass: true };
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const bucketKey = `rl:${key}:${Math.floor(now / windowSeconds)}`;
+    const count = await redis.incr(bucketKey);
+    if (count === 1) await redis.expire(bucketKey, windowSeconds);
+
+    const allowed = count <= maxHits;
+    return { allowed, count, remaining: Math.max(0, maxHits - count), resetInSec: windowSeconds };
+  }
+}
+```
+
+> Aplicação via interceptor/guard (P0 do roadmap): você pluga um `RateLimitInterceptor` global ou por controller.
+
+---
+
+### RAG — adapter + normalizer + service (stub e real scaffold)
+
+`apps/api/src/lib/rag/rag-adapter.interface.ts`
+
+```ts
+export interface RetrievedChunk {
+  chunkId: string;
+  documentId: string;
+  title: string;
+  author?: string;
+  year?: number;
+  score: number;
+  content: string;
+  locator?: string;
+  pageStart?: number;
+  pageEnd?: number;
+}
+
+export interface RagRetrieveParams {
+  query: string;
+  topK?: number;
+  minScore?: number;
+  filters?: Record<string, unknown>;
+}
+
+export interface RagAdapter {
+  retrieve(params: RagRetrieveParams): Promise<RetrievedChunk[]>;
+}
+```
+
+`apps/api/src/lib/rag/qdrant.stub.adapter.ts`
+
+```ts
+import { Injectable } from "@nestjs/common";
+import type { RagAdapter, RagRetrieveParams, RetrievedChunk } from "./rag-adapter.interface";
+
+@Injectable()
+export class QdrantStubAdapter implements RagAdapter {
+  async retrieve(params: RagRetrieveParams): Promise<RetrievedChunk[]> {
+    const topK = params.topK ?? 5;
+    const minScore = params.minScore ?? Number(process.env.RAG_MIN_SCORE ?? 0.72);
+
+    const rows: RetrievedChunk[] = [
+      {
+        chunkId: "chunk_1",
+        documentId: "doc_1",
+        title: "Prescrição, Periodização e Métodos do Treinamento de Força",
+        author: "Caio Cavagnolli Meirelles",
+        year: 2022,
+        score: 0.86,
+        content: "Trecho exemplo sobre volume, falha concêntrica e contexto de aplicação.",
+        locator: "p.112-114",
+        pageStart: 112,
+        pageEnd: 114
+      },
+      {
+        chunkId: "chunk_2",
+        documentId: "doc_2",
+        title: "Guia Técnico de Prescrição",
+        author: "Equipe Fitversum",
+        year: 2025,
+        score: 0.77,
+        content: "Trecho exemplo de prescrição baseada em evidências e supervisão.",
+        locator: "sec.2.1"
+      }
+    ];
+
+    return rows.filter(r => r.score >= minScore).slice(0, topK);
+  }
+}
+```
+
+`apps/api/src/lib/rag/qdrant.real.adapter.ts` (scaffold real)
+
+```ts
+import { Injectable } from "@nestjs/common";
+import { QdrantClient } from "@qdrant/js-client-rest";
+import type { RagAdapter, RagRetrieveParams, RetrievedChunk } from "./rag-adapter.interface";
+
+@Injectable()
+export class QdrantRealAdapter implements RagAdapter {
+  private client: QdrantClient | null = null;
+  private collection = "fitversum_chunks";
+
+  private getClient() {
+    if (this.client) return this.client;
+    if (!process.env.QDRANT_URL) return null;
+
+    this.client = new QdrantClient({
+      url: process.env.QDRANT_URL,
+      apiKey: process.env.QDRANT_API_KEY
+    });
+    return this.client;
+  }
+
+  async retrieve(params: RagRetrieveParams): Promise<RetrievedChunk[]> {
+    const client = this.getClient();
+    if (!client) return [];
+
+    // Produção (P1):
+    // 1) gerar embedding do params.query via provider
+    // 2) search Qdrant: client.search(collection, { vector, limit: topK, filter })
+    // 3) mapear payload->RetrievedChunk
+    return [];
+  }
+}
+```
+
+`apps/api/src/lib/rag/citation-normalizer.ts`
+
+```ts
+import crypto from "crypto";
+import type { RetrievedChunk } from "./rag-adapter.interface";
+import type { AISource } from "@fitversum/contracts";
+
+export function normalizeChunksToSources(chunks: RetrievedChunk[]): AISource[] {
+  return chunks.map((c) => ({
+    documentId: c.documentId,
+    title: c.title,
+    author: c.author,
+    year: c.year,
+    pageStart: c.pageStart,
+    pageEnd: c.pageEnd,
+    chunkId: c.chunkId,
+    score: c.score,
+    locator: c.locator
+  }));
+}
+
+export function makeCitationId(chunk: Pick<RetrievedChunk, "documentId" | "chunkId">) {
+  return `cit_${crypto.createHash("sha1").update(`${chunk.documentId}:${chunk.chunkId}`).digest("hex").slice(0, 10)}`;
+}
+
+export function buildShortQuote(text: string, maxLen = 180) {
+  const clean = text.replace(/\s+/g, " ").trim();
+  return clean.length <= maxLen ? clean : `${clean.slice(0, maxLen - 1)}…`;
+}
+```
+
+`apps/api/src/lib/rag/rag.service.ts`
+
+```ts
+import { Injectable } from "@nestjs/common";
+import type { AIChatResponse } from "@fitversum/contracts";
+import type { RagAdapter } from "./rag-adapter.interface";
+import { normalizeChunksToSources, makeCitationId, buildShortQuote } from "./citation-normalizer";
+
+@Injectable()
+export class RagService {
+  private minScore = Number(process.env.RAG_MIN_SCORE ?? 0.72);
+  private minDocs = Number(process.env.RAG_MIN_DOCS ?? 1);
+  private minHits = Number(process.env.RAG_MIN_HITS ?? 2);
+
+  constructor(private readonly ragAdapter: RagAdapter) {}
+
+  async answerWithCitations(message: string, locale: string, includeProductSuggestion = true): Promise<AIChatResponse> {
+    const retrieved = await this.ragAdapter.retrieve({
+      query: message,
+      topK: Number(process.env.RAG_TOPK ?? 6),
+      minScore: this.minScore
+    });
+
+    const uniqueDocs = new Set(retrieved.map((r) => r.documentId)).size;
+    const gateOk = retrieved.length >= this.minHits && uniqueDocs >= this.minDocs;
+
+    if (!gateOk) {
+      return {
+        answer: locale.startsWith("pt")
+          ? "Não encontrei base suficiente nas fontes aprovadas para responder com segurança. Posso refinar a busca ou sugerir leitura."
+          : "Insufficient approved-source basis to answer safely.",
+        sources: [],
+        safety: { ragUsed: true, blocked: true, reason: "rag_gate_failed" },
+        ...(includeProductSuggestion
+          ? { productSuggestion: { productId: "fitversum-box", why: "Leitura complementar relacionada ao tema consultado." } }
+          : {})
+      };
+    }
+
+    const sources = normalizeChunksToSources(retrieved);
+
+    return {
+      answer: locale.startsWith("pt")
+        ? "Resposta baseada em fontes aprovadas (RAG governado). Considere objetivo, volume, recuperação e supervisão técnica ao aplicar a prescrição."
+        : "Answer based on approved sources (governed RAG).",
+      sources,
+      safety: { ragUsed: true, blocked: false },
+      ...(includeProductSuggestion
+        ? { productSuggestion: { productId: "my-fit-box", why: "Conteúdo complementar sobre o tema pesquisado." } }
+        : {})
+    };
+  }
+
+  buildScannerEvidencePlaceholders() {
+    return [
+      {
+        citationId: makeCitationId({ documentId: "doc_scanner_1", chunkId: "chunk_eq_1" }),
+        title: "Fonte aprovada (scanner)",
+        locator: "p.45-47",
+        quote: buildShortQuote("Trecho governado sobre execução e músculos envolvidos no equipamento identificado.")
+      }
+    ];
+  }
+}
+```
+
+---
+
+## 6) Módulo AI (Core)
+
+`apps/api/src/modules/ai/ai.controller.ts`
+
+```ts
+import { BadRequestException, Body, Controller, Get, Post, UseGuards } from "@nestjs/common";
+import { z } from "zod";
+import { RagService } from "../../lib/rag/rag.service";
+import { AuthGuard } from "../../common/guards/auth.guard";
+import { PlansGuard } from "../../common/guards/plans.guard";
+import { Plans } from "../../common/decorators/plans.decorator";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import type { AuthUserContext } from "@fitversum/contracts";
+import { UsageService } from "../../lib/usage/usage.service";
+
+const chatWithSourcesSchema = z.object({
+  message: z.string().min(2),
+  locale: z.string().default("pt-BR"),
+  includeProductSuggestion: z.boolean().optional().default(true)
+});
+
+@Controller("ai")
+export class AiController {
+  constructor(
+    private readonly ragService: RagService,
+    private readonly usageService: UsageService
+  ) {}
+
+  @Post("chat-with-scientific-sources")
+  @UseGuards(AuthGuard, PlansGuard)
+  @Plans("free", "pro", "pro_plus", "b2b", "university")
+  async chat(@Body() body: unknown, @CurrentUser() user: AuthUserContext) {
+    const parsed = chatWithSourcesSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+
+    await this.usageService.assertAndIncrement(user, "ai_messages_count", 1);
+
+    return this.ragService.answerWithCitations(
+      parsed.data.message,
+      parsed.data.locale,
+      parsed.data.includeProductSuggestion
+    );
+  }
+
+  @Get("usage/me")
+  @UseGuards(AuthGuard)
+  async getMyUsage(@CurrentUser() user: AuthUserContext) {
+    return this.usageService.getCurrentUsage(user);
+  }
+}
+```
+
+`apps/api/src/modules/ai/ai.module.ts`
+
+```ts
+import { Module } from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { AiController } from "./ai.controller";
+import { RagService } from "../../lib/rag/rag.service";
+import { UsageService } from "../../lib/usage/usage.service";
+import { QdrantStubAdapter } from "../../lib/rag/qdrant.stub.adapter";
+
+@Module({
+  controllers: [AiController],
+  providers: [
+    Reflector,
+    UsageService,
+    { provide: QdrantStubAdapter, useClass: QdrantStubAdapter },
+    {
+      provide: RagService,
+      useFactory: (adapter: QdrantStubAdapter) => new RagService(adapter),
+      inject: [QdrantStubAdapter]
+    }
+  ],
+  exports: [RagService]
+})
+export class AiModule {}
+```
+
+---
+
+## 7) Scanner (P0 defensável)
+
+`apps/api/src/lib/training/exercise-catalog.service.ts`
+
+```ts
+import { Injectable } from "@nestjs/common";
+import { getSupabaseAdmin } from "../supabase/supabase-admin";
+
+@Injectable()
+export class ExerciseCatalogService {
+  async suggestByEquipId(equipId: string, limit = 8) {
+    const supabase = getSupabaseAdmin();
+
+    const { data: equipment } = await supabase
+      .from("equipment")
+      .select("id, equip_id, equipment_name")
+      .eq("equip_id", equipId)
+      .single();
+
+    if (!equipment) return [];
+
+    const { data, error } = await supabase
+      .from("equipment_exercise")
+      .select("sort_order, exercise:exercise_id (id, slug, name, exercise_family)")
+      .eq("equipment_id", equipment.id)
+      .eq("is_contraindicated", false)
+      .order("sort_order", { ascending: true })
+      .limit(limit);
+
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((r: any) => r.exercise).filter(Boolean);
+  }
+
+  async musclesByExercises(exerciseIds: string[]) {
+    if (!exerciseIds.length) return { primeMovers: [], synergists: [], stabilizers: [] };
+
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("exercise_muscle")
+      .select("exercise_id, muscle_name, role_type")
+      .in("exercise_id", exerciseIds);
+
+    if (error) throw new Error(error.message);
+
+    const prime = new Set<string>();
+    const syn = new Set<string>();
+    const stab = new Set<string>();
+
+    for (const row of data ?? []) {
+      if (row.role_type === "prime_mover") prime.add(row.muscle_name);
+      if (row.role_type === "synergist") syn.add(row.muscle_name);
+      if (row.role_type === "stabilizer") stab.add(row.muscle_name);
+    }
+
+    return { primeMovers: [...prime], synergists: [...syn], stabilizers: [...stab] };
+  }
+}
+```
+
+`apps/api/src/modules/scanner/scanner.controller.ts`
+
+```ts
+import { Body, Controller, Post, UseGuards } from "@nestjs/common";
+import crypto from "crypto";
+import { AuthGuard } from "../../common/guards/auth.guard";
+import { PlansGuard } from "../../common/guards/plans.guard";
+import { Plans } from "../../common/decorators/plans.decorator";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import type { AuthUserContext, ScannerResponse } from "@fitversum/contracts";
+import { UsageService } from "../../lib/usage/usage.service";
+import { ExerciseCatalogService } from "../../lib/training/exercise-catalog.service";
+import { RagService } from "../../lib/rag/rag.service";
+import { getSupabaseAdmin } from "../../lib/supabase/supabase-admin";
+
+@Controller("scanner")
+export class ScannerController {
+  constructor(
+    private readonly usageService: UsageService,
+    private readonly exerciseCatalog: ExerciseCatalogService,
+    private readonly ragService: RagService
+  ) {}
+
+  @Post("equipment")
+  @UseGuards(AuthGuard, PlansGuard)
+  @Plans("pro", "pro_plus", "b2b", "university")
+  async scanEquipment(@Body() body: any, @CurrentUser() user: AuthUserContext): Promise<ScannerResponse> {
+    await this.usageService.assertAndIncrement(user, "scanner_scans_count", 1);
+    const scanId = `scan_${crypto.randomBytes(8).toString("hex")}`;
+
+    // Stub (trocar por Vision provider + alias map no P1):
+    const selected = {
+      equipId: body?.userSelected?.equipId ?? "smith_machine",
+      equipmentName: "Smith Machine",
+      confidence: 0.84
+    };
+
+    const exerciseRows = await this.exerciseCatalog.suggestByEquipId(selected.equipId, 8);
+    const compatibleExercises = exerciseRows.map((e: any) => e.name);
+    const muscles = await this.exerciseCatalog.musclesByExercises(exerciseRows.map((e: any) => e.id));
+
+    const supabase = getSupabaseAdmin();
+    await supabase.from("scanner_log").insert({
+      scan_id: scanId,
+      user_id: user.userId,
+      asset_id: body?.assetId ?? null,
+      status: "OK",
+      equip_id: selected.equipId,
+      confidence_score: selected.confidence,
+      payload_summary: { goal: body?.goal ?? null, constraintsCount: body?.constraints?.length ?? 0 }
+    });
+
+    return {
+      status: "OK",
+      equipmentName: selected.equipmentName,
+      equipId: selected.equipId,
+      compatibleExercises,
+      muscles,
+      evidence: {
+        citations: this.ragService.buildScannerEvidencePlaceholders(),
+        snippets: ["Evidência governada (stub). Integrar retrieval por equip_id + goal + constraints."]
+      },
+      assumptions: [
+        body?.goal ? `Objetivo informado: ${body.goal}` : "Objetivo não informado.",
+        body?.constraints?.length ? `Restrições: ${body.constraints.join(", ")}` : "Sem restrições informadas."
+      ],
+      confidenceScore: selected.confidence,
+      scanId
+    };
+  }
+}
+```
+
+---
+
+## 8) Affiliates
+
+`apps/api/src/modules/affiliates/affiliates.controller.ts`
+
+```ts
+import { Body, Controller, Get, Post, UseGuards } from "@nestjs/common";
+import crypto from "crypto";
+import { AuthGuard } from "../../common/guards/auth.guard";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import type { AuthUserContext } from "@fitversum/contracts";
+import { getSupabaseAdmin } from "../../lib/supabase/supabase-admin";
+
+@Controller("affiliates")
+export class AffiliatesController {
+  @Post("enable")
+  @UseGuards(AuthGuard)
+  async enableAffiliate(@CurrentUser() user: AuthUserContext) {
+    const supabase = getSupabaseAdmin();
+    const affiliateCode = `fv_${crypto.randomBytes(4).toString("hex")}`;
+
+    const { data, error } = await supabase
+      .from("affiliate_profiles")
+      .upsert(
+        { user_id: user.userId, affiliate_code: affiliateCode, commission_rate_bp: 5000, is_active: true },
+        { onConflict: "user_id" }
+      )
+      .select("*")
+      .single();
+
+    if (error) throw new Error(error.message);
+
+    await supabase.from("profiles").update({ affiliate_enabled: true }).eq("user_id", user.userId);
+
+    return { ok: true, affiliate: data };
+  }
+
+  @Get("me")
+  @UseGuards(AuthGuard)
+  async me(@CurrentUser() user: AuthUserContext) {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("affiliate_profiles")
+      .select("*")
+      .eq("user_id", user.userId)
+      .maybeSingle();
+
+    if (error) throw new Error(error.message);
+    return { item: data ?? null };
+  }
+
+  @Post("link")
+  @UseGuards(AuthGuard)
+  async createLink(
+    @CurrentUser() user: AuthUserContext,
+    @Body() body: { targetType: "plan" | "product" | "service"; targetId: string; baseUrl?: string }
+  ) {
+    const supabase = getSupabaseAdmin();
+    const { data: affiliate } = await supabase
+      .from("affiliate_profiles")
+      .select("*")
+      .eq("user_id", user.userId)
+      .single();
+
+    if (!affiliate) throw new Error("Affiliate profile não encontrado");
+
+    const clickRef = crypto.randomBytes(8).toString("hex");
+    await supabase.from("affiliate_clicks").insert({
+      affiliate_profile_id: affiliate.id,
+      target_type: body.targetType,
+      target_id: body.targetId,
+      click_ref: clickRef
+    });
+
+    const baseUrl = body.baseUrl || process.env.CORS_ORIGIN || "http://localhost:3000";
+    const url = new URL("/api/affiliate/click", baseUrl);
+    url.searchParams.set("aff", affiliate.affiliate_code);
+    url.searchParams.set("ref", clickRef);
+    url.searchParams.set("targetType", body.targetType);
+    url.searchParams.set("targetId", body.targetId);
+    url.searchParams.set("next", "/");
+
+    return { ok: true, url: url.toString(), clickRef };
+  }
+
+  @Post("conversion")
+  async registerConversion(@Body() body: { clickRef: string; orderId?: string; subscriptionId?: string; grossAmountCents: number }) {
+    const supabase = getSupabaseAdmin();
+
+    const { data: click } = await supabase
+      .from("affiliate_clicks")
+      .select("affiliate_profile_id")
+      .eq("click_ref", body.clickRef)
+      .single();
+
+    if (!click?.affiliate_profile_id) return { ok: false, reason: "click_not_found" };
+
+    const commissionAmountCents = Math.round(body.grossAmountCents * 0.5);
+
+    const { data, error } = await supabase
+      .from("affiliate_conversions")
+      .insert({
+        affiliate_profile_id: click.affiliate_profile_id,
+        order_id: body.orderId ?? null,
+        subscription_id: body.subscriptionId ?? null,
+        gross_amount_cents: body.grossAmountCents,
+        commission_amount_cents: commissionAmountCents,
+        status: "pending"
+      })
+      .select("*")
+      .single();
+
+    if (error) throw new Error(error.message);
+    return { ok: true, item: data };
+  }
+}
+```
+
+---
+
+## 9) Store (catálogo + biblioteca)
+
+`apps/api/src/lib/store/store.service.ts`
+
+```ts
+import { Injectable } from "@nestjs/common";
+import { getSupabaseAdmin } from "../supabase/supabase-admin";
+
+@Injectable()
+export class StoreService {
+  async listProducts() {
+    const supabase = getSupabaseAdmin();
+
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .eq("is_active", true)
+      .order("is_founder_product", { ascending: false })
+      .order("visibility_rank", { ascending: true })
+      .order("created_at", { ascending: false });
+
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  }
+
+  async grantEntitlement(userId: string, productId: string, orderId?: string | null) {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("entitlements")
+      .insert({ user_id: userId, product_id: productId, order_id: orderId ?? null })
+      .select("*")
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data;
+  }
+
+  async getUserLibrary(userId: string) {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("entitlements")
+      .select(`id, granted_at, product:product_id ( id, slug, title, product_type )`)
+      .eq("user_id", userId)
+      .is("revoked_at", null)
+      .order("granted_at", { ascending: false });
+
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  }
+}
+```
+
+`apps/api/src/modules/store/store.controller.ts`
+
+```ts
+import { Controller, Get, Param, UseGuards } from "@nestjs/common";
+import { StoreService } from "../../lib/store/store.service";
+import { AuthGuard } from "../../common/guards/auth.guard";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import type { AuthUserContext } from "@fitversum/contracts";
+
+@Controller("store")
+export class StoreController {
+  constructor(private readonly storeService: StoreService) {}
+
+  @Get("products")
+  async listProducts() {
+    return { items: await this.storeService.listProducts() };
+  }
+
+  @Get("library")
+  @UseGuards(AuthGuard)
+  async library(@CurrentUser() user: AuthUserContext) {
+    return { items: await this.storeService.getUserLibrary(user.userId) };
+  }
+
+  @Get("products/:slug")
+  async detail(@Param("slug") slug: string) {
+    return { slug }; // TODO: buscar por slug
+  }
+}
+```
+
+---
+
+## 10) Training (generate + export scaffold + import-upload)
+
+`apps/api/src/lib/exports/export.service.ts`
+
+```ts
+import { Injectable } from "@nestjs/common";
+import { getSupabaseAdmin } from "../supabase/supabase-admin";
+
+@Injectable()
+export class ExportService {
+  async generateWorkoutPdf(params: { workoutId: string; userId: string; html?: string }) {
+    const supabase = getSupabaseAdmin();
+    const fakePath = `exports/${params.userId}/workouts/${params.workoutId}.pdf`;
+
+    await supabase.from("workouts")
+      .update({ pdf_path: fakePath })
+      .eq("id", params.workoutId)
+      .eq("user_id", params.userId);
+
+    return { ok: true, storagePath: fakePath, signedUrl: null };
+  }
+
+  async generateWorkoutDocx(params: { workoutId: string; userId: string }) {
+    const supabase = getSupabaseAdmin();
+    const fakePath = `exports/${params.userId}/workouts/${params.workoutId}.docx`;
+
+    await supabase.from("workouts")
+      .update({ docx_path: fakePath })
+      .eq("id", params.workoutId)
+      .eq("user_id", params.userId);
+
+    return { ok: true, storagePath: fakePath, signedUrl: null };
+  }
+}
+```
+
+`apps/api/src/modules/training/training.controller.ts`
+
+```ts
+import { Body, Controller, Param, Post, UseGuards } from "@nestjs/common";
+import { AuthGuard } from "../../common/guards/auth.guard";
+import { PlansGuard } from "../../common/guards/plans.guard";
+import { Plans } from "../../common/decorators/plans.decorator";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import type { AuthUserContext } from "@fitversum/contracts";
+import { UsageService } from "../../lib/usage/usage.service";
+import { ExportService } from "../../lib/exports/export.service";
+import { TrainingService } from "./training.service";
+
+@Controller("training")
+export class TrainingController {
+  constructor(
+    private readonly usageService: UsageService,
+    private readonly exportService: ExportService,
+    private readonly trainingService: TrainingService
+  ) {}
+
+  @Post("workouts/generate")
+  @UseGuards(AuthGuard, PlansGuard)
+  @Plans("pro", "pro_plus", "b2b", "university")
+  async generateWorkout(@Body() body: any, @CurrentUser() user: AuthUserContext) {
+    await this.usageService.assertAndIncrement(user, "workout_generations_count", 1);
+
+    return {
+      ok: true,
+      workout: { id: "wk_stub_1", structure: body?.structure ?? {}, scientific_basis: [] }
+    };
+  }
+
+  @Post("workouts/:id/export/pdf")
+  @UseGuards(AuthGuard, PlansGuard)
+  @Plans("pro", "pro_plus", "b2b", "university")
+  async exportPdf(@Param("id") workoutId: string, @CurrentUser() user: AuthUserContext) {
+    return this.exportService.generateWorkoutPdf({ workoutId, userId: user.userId });
+  }
+
+  @Post("workouts/:id/export/docx")
+  @UseGuards(AuthGuard, PlansGuard)
+  @Plans("pro", "pro_plus", "b2b", "university")
+  async exportDocx(@Param("id") workoutId: string, @CurrentUser() user: AuthUserContext) {
+    return this.exportService.generateWorkoutDocx({ workoutId, userId: user.userId });
+  }
+
+  @Post("anamneses/import-upload")
+  @UseGuards(AuthGuard)
+  async importAnamnesis(@Body() body: any, @CurrentUser() user: AuthUserContext) {
+    return this.trainingService.importAnamnesisFromAsset(user.userId, body.assetId, body.notes);
+  }
+}
+```
+
+`apps/api/src/modules/training/training.service.ts` (compacto)
+
+```ts
+import { Injectable } from "@nestjs/common";
+import { getSupabaseAdmin } from "../../lib/supabase/supabase-admin";
+
+@Injectable()
+export class TrainingService {
+  // Em P1.2: integrar TextExtractService real (pdf/docx).
+  async importAnamnesisFromAsset(userId: string, assetId: string, notes?: string) {
+    const supabase = getSupabaseAdmin();
+
+    const { data: asset, error: e1 } = await supabase
+      .from("media_assets")
+      .select("bucket,storage_path,mime_type")
+      .eq("id", assetId)
+      .single();
+    if (e1) throw new Error(e1.message);
+    if (!asset) throw new Error("asset_not_found");
+
+    // Stub: sem extração real ainda
+    const rawText = `ASSET_REF:${asset.bucket}/${asset.storage_path}`;
+
+    const { data, error } = await supabase
+      .from("anamneses")
+      .insert({ user_id: userId, raw_text: rawText, notes: notes ?? null })
+      .select("*")
+      .single();
+
+    if (error) throw new Error(error.message);
+    return { ok: true, anamnesisId: data.id };
+  }
+}
+```
+
+---
+
+## 11) Admin (skeleton funcional)
+
+`apps/api/src/modules/admin/admin.controller.ts`
+
+```ts
+import { Body, Controller, Get, Patch, Query, UseGuards } from "@nestjs/common";
+import { AuthGuard } from "../../common/guards/auth.guard";
+import { RolesGuard } from "../../common/guards/roles.guard";
+import { Roles } from "../../common/decorators/roles.decorator";
+import { getSupabaseAdmin } from "../../lib/supabase/supabase-admin";
+
+@Controller("admin")
+@UseGuards(AuthGuard, RolesGuard)
+@Roles("admin")
+export class AdminController {
+  @Get("planos")
+  async getPlanDefinitions() {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("plan_definitions")
+      .select("*")
+      .order("monthly_price_cents", { ascending: true });
+
+    if (error) throw new Error(error.message);
+    return { items: data ?? [] };
+  }
+
+  @Patch("planos")
+  async upsertPlan(@Body() body: Record<string, unknown>) {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("plan_definitions")
+      .upsert(body, { onConflict: "plan_tier" })
+      .select("*")
+      .single();
+
+    if (error) throw new Error(error.message);
+    return { ok: true, item: data };
+  }
+
+  @Get("usuarios")
+  async listUsers(@Query("limit") limit = "20", @Query("search") search?: string) {
+    const supabase = getSupabaseAdmin();
+
+    let q = supabase
+      .from("profiles")
+      .select("user_id, name, role, plan_tier, institution_id, affiliate_enabled, is_founder, created_at")
+      .order("created_at", { ascending: false })
+      .limit(Math.min(Number(limit), 100));
+
+    if (search) q = q.ilike("name", `%${search}%`);
+
+    const { data, error } = await q;
+    if (error) throw new Error(error.message);
+    return { items: data ?? [] };
+  }
+
+  @Patch("usuarios")
+  async patchUser(@Body() body: { user_id: string; role?: string; plan_tier?: string; affiliate_enabled?: boolean }) {
+    const supabase = getSupabaseAdmin();
+    const { user_id, ...patch } = body;
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .update(patch)
+      .eq("user_id", user_id)
+      .select("*")
+      .single();
+
+    if (error) throw new Error(error.message);
+    return { ok: true, item: data };
+  }
+}
+```
+
+---
+
+## 12) Uploads (client) — API
+
+`apps/api/src/modules/uploads-client/uploads-client.controller.ts`
+
+```ts
+import { Body, Controller, Post, UseGuards } from "@nestjs/common";
+import crypto from "crypto";
+import { AuthGuard } from "../../common/guards/auth.guard";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import type { AuthUserContext } from "@fitversum/contracts";
+import { getSupabaseAdmin } from "../../lib/supabase/supabase-admin";
+
+@Controller("uploads/client")
+export class UploadsClientController {
+  @Post("presign")
+  @UseGuards(AuthGuard)
+  async presign(@Body() body: { bucket: string; fileName: string; mimeType?: string }, @CurrentUser() user: AuthUserContext) {
+    const safeBucket = body.bucket || "assets";
+    const ext = (body.fileName.split(".").pop() || "bin").toLowerCase();
+    const storagePath = `uploads/${user.userId}/${Date.now()}_${crypto.randomBytes(4).toString("hex")}.${ext}`;
+    return { bucket: safeBucket, storagePath };
+  }
+
+  @Post("commit")
+  @UseGuards(AuthGuard)
+  async commit(
+    @Body() body: { bucket: string; storagePath: string; fileName: string; mimeType?: string; sizeBytes?: number },
+    @CurrentUser() user: AuthUserContext
+  ) {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("media_assets")
+      .insert({
+        owner_user_id: user.userId,
+        bucket: body.bucket,
+        storage_path: body.storagePath,
+        file_name: body.fileName,
+        mime_type: body.mimeType ?? null,
+        size_bytes: body.sizeBytes ?? null,
+        destination: "client_upload"
+      })
+      .select("*")
+      .single();
+
+    if (error) throw new Error(error.message);
+    return { ok: true, asset: data };
+  }
+}
+```
+
+`apps/api/src/modules/uploads-client/uploads-client.module.ts`
+
+```ts
+import { Module } from "@nestjs/common";
+import { UploadsClientController } from "./uploads-client.controller";
+
+@Module({ controllers: [UploadsClientController] })
+export class UploadsClientModule {}
+```
+
+---
+
+## 13) Editorial (Orientação Acadêmica) — API (scaffold)
+
+> Aqui está o essencial para submissions + documento + patch budgets + download deliverable (signed URL fica P0 do roadmap).
+
+`apps/api/src/modules/editorial/editorial.controller.ts`
+
+```ts
+import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
+import { AuthGuard } from "../../common/guards/auth.guard";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import type { AuthUserContext } from "@fitversum/contracts";
+import { EditorialService } from "./editorial.service";
+
+@Controller("editorial")
+@UseGuards(AuthGuard)
+export class EditorialController {
+  constructor(private readonly editorial: EditorialService) {}
+
+  @Post("submissions")
+  async create(@Body() body: any, @CurrentUser() user: AuthUserContext) {
+    return this.editorial.createSubmission(user.userId, body);
+  }
+
+  @Get("submissions")
+  async list(@CurrentUser() user: AuthUserContext) {
+    return this.editorial.listSubmissions(user.userId);
+  }
+
+  @Get("submissions/:id")
+  async detail(@Param("id") id: string, @CurrentUser() user: AuthUserContext) {
+    return this.editorial.getSubmission(user.userId, id);
+  }
+
+  @Get("submissions/:id/document")
+  async document(@Param("id") id: string, @CurrentUser() user: AuthUserContext) {
+    return this.editorial.getDocument(user.userId, id);
+  }
+
+  @Post("submissions/:id/apply-patch")
+  async applyPatch(@Param("id") id: string, @Body() body: any, @CurrentUser() user: AuthUserContext) {
+    return this.editorial.applyPatch(user.userId, id, body);
+  }
+
+  @Get("deliverables/:id/download")
+  async download(@Param("id") id: string, @CurrentUser() user: AuthUserContext) {
+    return this.editorial.downloadDeliverable(user.userId, id);
+  }
+}
+```
+
+`apps/api/src/modules/editorial/editorial.service.ts`
+
+```ts
+import { ForbiddenException, Injectable } from "@nestjs/common";
+import { getSupabaseAdmin } from "../../lib/supabase/supabase-admin";
+import { diff_match_patch } from "diff-match-patch";
+
+function budgetsForMode(mode: string, originalChars: number) {
+  const pct = (p: number) => Math.floor(originalChars * p);
+  if (mode === "simple") return { ai: pct(0.10), advisor: pct(0.20), total: pct(0.30) };
+  if (mode === "mentorship" || mode === "translation") return { ai: 0, advisor: 0, total: pct(0.50) };
+  if (mode === "translation_total") return { ai: 0, advisor: 0, total: pct(1.10) };
+  return { ai: pct(0.10), advisor: pct(0.20), total: pct(0.30) };
+}
+
+@Injectable()
+export class EditorialService {
+  private dmp = new diff_match_patch();
+
+  async createSubmission(userId: string, body: any) {
+    const supabase = getSupabaseAdmin();
+    const serviceMode = body.serviceMode ?? "simple";
+
+    const { data: sub, error } = await supabase
+      .from("editorial_submissions")
+      .insert({
+        user_id: userId,
+        status: "submitted",
+        title: body.title ?? null,
+        locale: body.locale ?? "pt-BR",
+        notes: body.notes ?? null,
+        source_asset_id: body.sourceAssetId ?? null,
+        service_mode: serviceMode,
+        translation_total: Boolean(body.translationTotal ?? false)
+      })
+      .select("*")
+      .single();
+    if (error) throw new Error(error.message);
+
+    // Doc stub: em P1.2, extrair texto real do asset
+    const originalText = `SUBMISSION_ASSET_REF:${body.sourceAssetId}`;
+    const originalCharCount = originalText.length;
+    const budgets = budgetsForMode(serviceMode, originalCharCount);
+
+    await supabase.from("submission_documents").insert({
+      submission_id: sub.id,
+      original_text: originalText,
+      current_text: originalText
+    });
+
+    await supabase.from("editorial_submissions").update({
+      original_char_count: originalCharCount,
+      ai_replace_budget: budgets.ai,
+      advisor_replace_budget: budgets.advisor,
+      total_replace_budget: budgets.total
+    }).eq("id", sub.id);
+
+    return { ok: true, submission: sub };
+  }
+
+  async listSubmissions(userId: string) {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("editorial_submissions")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return { items: data ?? [] };
+  }
+
+  async getSubmission(userId: string, id: string) {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("editorial_submissions")
+      .select("*")
+      .eq("id", id)
+      .eq("user_id", userId)
+      .single();
+    if (error) throw new Error(error.message);
+    return { item: data };
+  }
+
+  async getDocument(userId: string, submissionId: string) {
+    const supabase = getSupabaseAdmin();
+    await this.getSubmission(userId, submissionId);
+
+    const { data: doc, error } = await supabase
+      .from("submission_documents")
+      .select("*")
+      .eq("submission_id", submissionId)
+      .single();
+    if (error) throw new Error(error.message);
+
+    const { data: edits } = await supabase
+      .from("submission_edits")
+      .select("actor_type, removed_chars, created_at")
+      .eq("submission_id", submissionId);
+
+    const usedTotal = (edits ?? []).reduce((a: number, e: any) => a + Number(e.removed_chars || 0), 0);
+
+    const { data: sub } = await supabase
+      .from("editorial_submissions")
+      .select("original_char_count, ai_replace_budget, advisor_replace_budget, total_replace_budget")
+      .eq("id", submissionId)
+      .single();
+
+    return {
+      submissionId,
+      originalCharCount: Number(sub?.original_char_count ?? doc.original_text.length),
+      budgets: {
+        ai: Number(sub?.ai_replace_budget ?? 0),
+        advisor: Number(sub?.advisor_replace_budget ?? 0),
+        total: Number(sub?.total_replace_budget ?? 0),
+        usedAi: 0,
+        usedAdvisor: 0,
+        usedTotal
+      },
+      originalText: doc.original_text,
+      currentText: doc.current_text
+    };
+  }
+
+  async applyPatch(userId: string, submissionId: string, body: any) {
+    const supabase = getSupabaseAdmin();
+    const doc = await this.getDocument(userId, submissionId);
+
+    const patchText = String(body.patchText ?? "");
+    if (!patchText.trim()) throw new Error("empty_patch");
+
+    // PATCH STRATEGY (MVP): replace entire doc with patchText (budget counts deletions)
+    const diffs = this.dmp.diff_main(doc.currentText, patchText);
+    this.dmp.diff_cleanupSemantic(diffs);
+
+    const removedChars = diffs
+      .filter((d) => d[0] === -1)
+      .reduce((a, d) => a + (d[1]?.length ?? 0), 0);
+
+    const newUsedTotal = doc.budgets.usedTotal + removedChars;
+    if (doc.budgets.total > 0 && newUsedTotal > doc.budgets.total) {
+      throw new ForbiddenException({ code: "total_budget_exceeded", used: newUsedTotal, limit: doc.budgets.total });
+    }
+
+    await supabase.from("submission_documents").update({ current_text: patchText }).eq("submission_id", submissionId);
+
+    await supabase.from("submission_edits").insert({
+      submission_id: submissionId,
+      actor_type: body.actorType === "advisor" ? "advisor" : "ai",
+      patch: { mode: "replace_all" },
+      removed_chars: removedChars
+    });
+
+    return {
+      ok: true,
+      removedChars,
+      budgets: { ...doc.budgets, usedTotal: newUsedTotal },
+      currentText: patchText
+    };
+  }
+
+  async downloadDeliverable(userId: string, deliverableId: string) {
+    // P0 roadmap: implementar signed URL real aqui
+    // MVP: apenas retorna placeholder
+    await this.assertDeliverableOwnership(userId, deliverableId);
+    return { signedUrl: "SIGNED_URL_PLACEHOLDER", expiresInSec: 600 };
+  }
+
+  private async assertDeliverableOwnership(userId: string, deliverableId: string) {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("editorial_deliverables")
+      .select("id, submission_id")
+      .eq("id", deliverableId)
+      .single();
+    if (error) throw new Error(error.message);
+    const subId = data.submission_id;
+
+    const { data: sub } = await supabase
+      .from("editorial_submissions")
+      .select("user_id")
+      .eq("id", subId)
+      .single();
+    if (!sub || sub.user_id !== userId) throw new ForbiddenException("not_owner");
+  }
+}
+```
+
+`apps/api/src/modules/editorial/editorial.module.ts`
+
+```ts
+import { Module } from "@nestjs/common";
+import { EditorialController } from "./editorial.controller";
+import { EditorialService } from "./editorial.service";
+
+@Module({
+  controllers: [EditorialController],
+  providers: [EditorialService]
+})
+export class EditorialModule {}
+```
+
+---
+
+## 14) Academic (web-only permitido) — API (stub)
+
+`apps/api/src/modules/academic/academic.controller.ts`
+
+```ts
+import { Body, Controller, Get, Post, Query, UseGuards } from "@nestjs/common";
+import { AuthGuard } from "../../common/guards/auth.guard";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import type { AuthUserContext } from "@fitversum/contracts";
+import { AcademicService } from "./academic.service";
+
+@Controller("ai")
+@UseGuards(AuthGuard)
+export class AcademicController {
+  constructor(private readonly academic: AcademicService) {}
+
+  @Get("academic-search")
+  async search(@Query("q") q: string, @CurrentUser() user: AuthUserContext) {
+    return this.academic.search(user.userId, q);
+  }
+
+  @Post("academic-answer")
+  async answer(@Body() body: any, @CurrentUser() user: AuthUserContext) {
+    return this.academic.answer(user.userId, body);
+  }
+
+  @Post("academic-support")
+  async support(@Body() body: any, @CurrentUser() user: AuthUserContext) {
+    return this.academic.support(user.userId, body);
+  }
+
+  @Post("reference-format")
+  async reference(@Body() body: any, @CurrentUser() user: AuthUserContext) {
+    return this.academic.reference(user.userId, body);
+  }
+}
+```
+
+`apps/api/src/modules/academic/academic.service.ts`
+
+```ts
+import { Injectable } from "@nestjs/common";
+import { getSupabaseAdmin } from "../../lib/supabase/supabase-admin";
+
+@Injectable()
+export class AcademicService {
+  async search(userId: string, q: string) {
+    // P1: integrar providers reais (PubMed/Crossref/OpenAlex/Unpaywall) + cache
+    return { query: q, items: [], meta: { userId, providers: ["stub"] } };
+  }
+
+  async answer(userId: string, body: any) {
+    return {
+      answer: "Resposta acadêmica (stub). Integrar providers + biblioteca + citações.",
+      citations: []
+    };
+  }
+
+  async support(userId: string, body: any) {
+    const supabase = getSupabaseAdmin();
+    await supabase.from("academic_writing_sessions").insert({
+      user_id: userId,
+      mode: body.mode ?? "rewrite",
+      input_text: body.inputText ?? "",
+      output_text: body.outputText ?? "",
+      meta: body.meta ?? {}
+    });
+    return { ok: true };
+  }
+
+  async reference(userId: string, body: any) {
+    const supabase = getSupabaseAdmin();
+    const output = "REFERENCES_STUB";
+    await supabase.from("reference_exports").insert({
+      user_id: userId,
+      style: body.style ?? "ABNT",
+      input: body.items ?? [],
+      output
+    });
+    return { style: body.style ?? "ABNT", output };
+  }
+}
+```
+
+`apps/api/src/modules/academic/academic.module.ts`
+
+```ts
+import { Module } from "@nestjs/common";
+import { AcademicController } from "./academic.controller";
+import { AcademicService } from "./academic.service";
+
+@Module({ controllers: [AcademicController], providers: [AcademicService] })
+export class AcademicModule {}
+```
+
+---
+
+## 15) Worker (BullMQ) — `apps/api/src/worker.ts` (scaffold)
+
+```ts
+import "reflect-metadata";
+import { Worker } from "bullmq";
+import IORedis from "ioredis";
+import { getSupabaseAdmin } from "./lib/supabase/supabase-admin";
+
+const connection = process.env.REDIS_URL ? new IORedis(process.env.REDIS_URL) : undefined;
+
+type JobData = { jobType: string; payload: any };
+
+function requireRedis() {
+  if (!connection) throw new Error("REDIS_URL not set");
+  return connection;
+}
+
+async function updateJob(table: "ingestion_jobs" | "editorial_review_jobs", id: string, patch: any) {
+  const supabase = getSupabaseAdmin();
+  await supabase.from(table).update(patch).eq("id", id);
+}
+
+async function run() {
+  const conn = requireRedis();
+
+  const worker = new Worker<JobData>(
+    "fitversum_jobs",
+    async (job) => {
+      const { jobType, payload } = job.data;
+
+      // payload deve carregar { jobId, table } etc.
+      if (payload?.table && payload?.jobId) {
+        await updateJob(payload.table, payload.jobId, { status: "running", progress: 5, updated_at: new Date().toISOString() });
+      }
+
+      // Ingestion (P1): rag_parse/rag_chunk/rag_embed/rag_index
+      // Editorial (P1): ai_precheck/human_review/translation_precheck
+      // MVP: finalizar
+      if (payload?.table && payload?.jobId) {
+        await updateJob(payload.table, payload.jobId, { status: "done", progress: 100, updated_at: new Date().toISOString(), result: { ok: true } });
+      }
+
+      return { ok: true };
+    },
+    { connection: conn as any }
+  );
+
+  worker.on("failed", async (job, err) => {
+    if (!job) return;
+    const payload: any = job.data?.payload;
+    if (payload?.table && payload?.jobId) {
+      await updateJob(payload.table, payload.jobId, { status: "failed", error: String(err?.message ?? err), updated_at: new Date().toISOString() });
+    }
+  });
+
+  console.log("✅ Worker listening on queue fitversum_jobs");
+}
+
+run().catch((e) => {
+  console.error("❌ Worker failed:", e);
+  process.exit(1);
+});
+```
+
+---
+
+## 16) apps/mobile (Expo / React Native) — App iOS/Android
+
+### `apps/mobile/package.json`
+
+```json
+{
+  "name": "mobile",
+  "private": true,
+  "version": "5.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "build": "expo export"
+  },
+  "dependencies": {
+    "expo": "^51.0.0",
+    "expo-status-bar": "~1.12.1",
+    "react": "18.3.1",
+    "react-native": "0.74.0",
+    "@react-navigation/native": "^6.1.17",
+    "@react-navigation/native-stack": "^6.10.0",
+    "react-native-safe-area-context": "4.10.1",
+    "react-native-screens": "3.31.1",
+    "@supabase/supabase-js": "^2.47.0"
+  }
+}
+```
+
+### `apps/mobile/app.json`
+
+```json
+{
+  "expo": {
+    "name": "Fitversum Lab",
+    "slug": "fitversum-lab",
+    "scheme": "fitversum",
+    "version": "5.0.0",
+    "orientation": "portrait",
+    "platforms": ["ios", "android"],
+    "ios": { "supportsTablet": true },
+    "android": { "adaptiveIcon": { "backgroundColor": "#0B0B0C" } }
+  }
+}
+```
+
+### `apps/mobile/src/lib/supabase.ts`
+
+```ts
+import { createClient } from "@supabase/supabase-js";
+
+export const supabase = createClient(
+  process.env.EXPO_PUBLIC_SUPABASE_URL!,
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!
+);
+```
+
+### `apps/mobile/src/lib/api.ts`
+
+```ts
+import { supabase } from "./supabase";
+
+const API = process.env.EXPO_PUBLIC_API_URL || "http://localhost:4000";
+
+export async function apiPost(path: string, body: any) {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error("no_session");
+
+  const r = await fetch(`${API}${path}`, {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+```
+
+### `apps/mobile/App.tsx` (navegação mínima + telas de Chat/Scanner/Uploads)
+
+```tsx
+import React, { useEffect, useState } from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { View, Text, TextInput, Pressable, ScrollView } from "react-native";
+import { supabase } from "./src/lib/supabase";
+import { apiPost } from "./src/lib/api";
+
+const Stack = createNativeStackNavigator();
+
+function Screen({ children }: any) {
+  return <View style={{ flex: 1, backgroundColor: "#0B0B0C", padding: 16 }}>{children}</View>;
+}
+
+function Login() {
+  const [email, setEmail] = useState("");
+  const [msg, setMsg] = useState("");
+
+  async function magic() {
+    setMsg("");
+    const { error } = await supabase.auth.signInWithOtp({ email });
+    if (error) setMsg(error.message);
+    else setMsg("Link mágico enviado. Abra o e-mail no mesmo dispositivo.");
+  }
+
+  return (
+    <Screen>
+      <Text style={{ color: "#FFF", fontSize: 22, fontWeight: "700" }}>Entrar</Text>
+      <TextInput
+        style={{ marginTop: 12, backgroundColor: "#111113", color: "#FFF", padding: 12, borderRadius: 12 }}
+        placeholder="seu@email.com"
+        placeholderTextColor="#A1A1AA"
+        value={email}
+        onChangeText={setEmail}
+        autoCapitalize="none"
+      />
+      <Pressable onPress={magic} style={{ marginTop: 12, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: "#D4AF37" }}>
+        <Text style={{ color: "#D4AF37", textAlign: "center" }}>Receber link mágico</Text>
+      </Pressable>
+      {!!msg && <Text style={{ marginTop: 12, color: "#A1A1AA" }}>{msg}</Text>}
+    </Screen>
+  );
+}
+
+function Chat() {
+  const [q, setQ] = useState("");
+  const [ans, setAns] = useState<any>(null);
+
+  async function ask() {
+    const res = await apiPost("/ai/chat-with-scientific-sources", { message: q, locale: "pt-BR" });
+    setAns(res);
+  }
+
+  return (
+    <Screen>
+      <Text style={{ color: "#FFF", fontSize: 22, fontWeight: "700" }}>Chat (RAG governado)</Text>
+      <TextInput
+        style={{ marginTop: 12, backgroundColor: "#111113", color: "#FFF", padding: 12, borderRadius: 12 }}
+        placeholder="Pergunte..."
+        placeholderTextColor="#A1A1AA"
+        value={q}
+        onChangeText={setQ}
+      />
+      <Pressable onPress={ask} style={{ marginTop: 12, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: "#D4AF37" }}>
+        <Text style={{ color: "#D4AF37", textAlign: "center" }}>Enviar</Text>
+      </Pressable>
+
+      <ScrollView style={{ marginTop: 12 }}>
+        {ans?.answer && <Text style={{ color: "#FFF" }}>{ans.answer}</Text>}
+        {(ans?.sources ?? []).map((s: any) => (
+          <Text key={s.chunkId} style={{ color: "#A1A1AA", marginTop: 6 }}>
+            • {s.title} ({s.locator ?? "s/loc"}) score={s.score?.toFixed?.(2) ?? s.score}
+          </Text>
+        ))}
+      </ScrollView>
+    </Screen>
+  );
+}
+
+function Scanner() {
+  const [equipId, setEquipId] = useState("smith_machine");
+  const [res, setRes] = useState<any>(null);
+
+  async function scan() {
+    const r = await apiPost("/scanner/equipment", { assetId: "mobile_stub", userSelected: { equipId } });
+    setRes(r);
+  }
+
+  return (
+    <Screen>
+      <Text style={{ color: "#FFF", fontSize: 22, fontWeight: "700" }}>Scanner (stub)</Text>
+      <TextInput
+        style={{ marginTop: 12, backgroundColor: "#111113", color: "#FFF", padding: 12, borderRadius: 12 }}
+        value={equipId}
+        onChangeText={setEquipId}
+      />
+      <Pressable onPress={scan} style={{ marginTop: 12, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: "#D4AF37" }}>
+        <Text style={{ color: "#D4AF37", textAlign: "center" }}>Rodar</Text>
+      </Pressable>
+
+      {res?.scanId && (
+        <ScrollView style={{ marginTop: 12 }}>
+          <Text style={{ color: "#A1A1AA" }}>scanId: {res.scanId}</Text>
+          <Text style={{ color: "#FFF", marginTop: 8 }}>Equipamento: {res.equipmentName}</Text>
+          <Text style={{ color: "#FFF", marginTop: 8 }}>Exercícios:</Text>
+          {(res.compatibleExercises ?? []).map((x: string) => <Text key={x} style={{ color: "#A1A1AA" }}>• {x}</Text>)}
+        </ScrollView>
+      )}
+    </Screen>
+  );
+}
+
+export default function App() {
+  const [ready, setReady] = useState(false);
+  const [session, setSession] = useState<any>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setReady(true);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  if (!ready) return null;
+
+  return (
+    <NavigationContainer>
+      <Stack.Navigator screenOptions={{ headerStyle: { backgroundColor: "#0B0B0C" }, headerTintColor: "#FFF" }}>
+        {!session ? (
+          <Stack.Screen name="Login" component={Login} />
+        ) : (
+          <>
+            <Stack.Screen name="Chat" component={Chat} />
+            <Stack.Screen name="Scanner" component={Scanner} />
+          </>
+        )}
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
+```
+
+> Para mobile funcionar, adicione no `.env` do Expo:
+
+```env
+EXPO_PUBLIC_SUPABASE_URL=
+EXPO_PUBLIC_SUPABASE_ANON_KEY=
+EXPO_PUBLIC_API_URL=http://localhost:4000
+```
+
+---
+
+## 17) Infra — Supabase migrations (arquivos + ordem)
+
+> Ordem recomendada:
+
+```txt
+001_init_core.sql
+002_scanner_p0.sql
+003_plans_affiliates_multitenant.sql
+004_security_rls_ext.sql
+005_seed_fitversum.sql
+006_v4_exercises_catalog.sql
+007_v4_seed_exercises_catalog.sql
+008_v4_affiliate_rls.sql
+009_v5_billing_store_entitlements.sql
+010_v5_ai_logs_usage.sql
+011_v5_admin_indexes.sql
+012_academic_search.sql
+013_upload_center.sql
+014_editorial_services.sql
+015_advisor_rename_and_edit_budget.sql
+016_advisor_translation.sql
+017_clients_and_relationships.sql
+018_services_orders_payments.sql
+019_feed_reactions.sql
+020_translation_total_budget.sql
+021_anamneses_raw_text.sql
+```
+
+### Exemplo completo (curto) — `infra/supabase/migrations/021_anamneses_raw_text.sql`
+
+```sql
+alter table public.anamneses add column if not exists raw_text text null;
+alter table public.anamneses add column if not exists notes text null;
+```
+
+### Exemplo completo (curto) — `infra/supabase/migrations/019_feed_reactions.sql`
+
+```sql
+create table if not exists public.post_reactions(
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid references public.posts(id) on delete cascade,
+  user_id uuid references auth.users(id) on delete cascade,
+  reaction text not null,
+  created_at timestamptz default now(),
+  unique(post_id,user_id,reaction)
+);
+create table if not exists public.post_shares(
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid references public.posts(id) on delete cascade,
+  user_id uuid references auth.users(id) on delete cascade,
+  channel text null,
+  created_at timestamptz default now()
+);
+```
+
+> As demais migrations “core” são diretamente as que você já definiu (profiles/plan_definitions/usage, store, affiliates, scanner, documents/chunks, RLS etc.). Se você quiser, eu posso te devolver **as 001..018 completas em uma única resposta**, mas isso tende a estourar o limite de mensagem dependendo do tamanho final.
+
+---
+
+## 18) Script de bootstrap (gera o repo)
+
+`scripts/create-fitversum-v5.js`
+
+```js
+#!/usr/bin/env node
+const fs = require("fs");
+const path = require("path");
+
+const ROOT = path.join(process.cwd(), "fitversum-lab");
+
+function ensureDir(dir) { fs.mkdirSync(dir, { recursive: true }); }
+function write(rel, content) {
+  const abs = path.join(ROOT, rel);
+  ensureDir(path.dirname(abs));
+  fs.writeFileSync(abs, content, "utf8");
+  console.log("✔", rel);
+}
+
+if (fs.existsSync(ROOT)) {
+  console.error("❌ Pasta já existe:", ROOT);
+  process.exit(1);
+}
+
+ensureDir(ROOT);
+
+write("README.md", "# Fitversum Lab\nBootstrap V5.\n");
+write(".env.example", "NODE_ENV=development\n");
+write("package.json", JSON.stringify({ name: "fitversum-lab", private: true, version: "5.0.0" }, null, 2));
+write("pnpm-workspace.yaml", 'packages:\n  - "apps/*"\n  - "packages/*"\n  - "infra/*"\n  - "scripts"\n');
+write("turbo.json", JSON.stringify({ $schema: "https://turbo.build/schema.json", tasks: { dev: { cache: false, persistent: true } } }, null, 2));
+
+console.log(`\n✅ Repositório Fitversum Lab V5 criado em: ${ROOT}`);
+```
+
+---
+
+## 19) Checklist de execução
+
+* `pnpm install`
+* Web: `pnpm dev:web`
+* API: `pnpm dev:api`
+* Worker: `pnpm dev:worker` (exige `REDIS_URL`)
+* Mobile: `pnpm dev:mobile` (Expo)
+
+---
+
+## 20) Roadmap técnico (o que falta para “produção real”) admin deve ter todos os poderes possíveis implementar:
+
+* Qdrant real + embeddings + rerank (P1)
+* Vision provider real (scanner) (P1)
+* parser/chunking/indexação automática (upload center → ingestion) (P1)
+* PDF/DOCX real e edição/import (P1.2)
+* webhook Stripe persistindo orders/subscriptions/entitlements completos (P0)
+* signed URLs completos (store + editorial) (P0)
+* rate-limit aplicado por interceptor/guard (P0)
+* admin UI mutável (forms) (P2)
+* B2B/white-label (institutions, branding, subdomínios) (P2)
+* observabilidade avançada (custos IA, tracing, alertas) (P2)
+
+```
+```
