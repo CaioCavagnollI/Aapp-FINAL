@@ -11,7 +11,13 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import Animated, { FadeInDown, useSharedValue, useAnimatedStyle, withSequence, withTiming, withSpring } from "react-native-reanimated";
+import Animated, {
+  FadeInDown,
+  useSharedValue,
+  useAnimatedStyle,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { useAdmin } from "@/contexts/AdminContext";
@@ -20,11 +26,13 @@ import Colors from "@/constants/colors";
 export default function AdminLoginScreen() {
   const insets = useSafeAreaInsets();
   const { login } = useAdmin();
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const inputRef = useRef<TextInput>(null);
+  const usernameRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
 
   const shakeX = useSharedValue(0);
   const shakeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shakeX.value }] }));
@@ -40,12 +48,12 @@ export default function AdminLoginScreen() {
   };
 
   const handleLogin = async () => {
-    if (!password.trim() || isLoading) return;
+    if (!username.trim() || !password.trim() || isLoading) return;
     setIsLoading(true);
     setError("");
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    const result = await login(password);
+    const result = await login(username.trim(), password);
     setIsLoading(false);
 
     if (result.success) {
@@ -53,34 +61,58 @@ export default function AdminLoginScreen() {
       router.replace("/(admin)");
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      setError(result.error || "Senha incorreta");
+      setError(result.error || "Credenciais inválidas");
       setPassword("");
       shake();
     }
   };
 
   const topPadding = Platform.OS === "web" ? 67 : insets.top;
+  const canSubmit = username.trim().length > 0 && password.trim().length > 0 && !isLoading;
 
   return (
     <View style={[styles.container, { paddingTop: topPadding }]}>
       <Animated.View entering={FadeInDown.springify()} style={styles.inner}>
+
+        {/* Logo */}
         <LinearGradient
-          colors={["rgba(212,175,55,0.12)", "rgba(212,175,55,0.03)"]}
+          colors={["rgba(212,175,55,0.15)", "rgba(212,175,55,0.04)"]}
           style={styles.iconBg}
         >
           <Ionicons name="shield-checkmark" size={40} color={Colors.gold} />
         </LinearGradient>
 
-        <Text style={styles.title}>Área Restrita</Text>
-        <Text style={styles.subtitle}>
-          Insira a senha de administrador para acessar o painel de upload de arquivos.
-        </Text>
+        <View style={styles.titleArea}>
+          <Text style={styles.title}>Área Admin</Text>
+          <Text style={styles.subtitle}>Nexus · Powered by Atlas</Text>
+          <Text style={styles.desc}>Entre com suas credenciais de administrador</Text>
+        </View>
 
-        <Animated.View style={[styles.inputWrapper, shakeStyle]}>
+        {/* Campos */}
+        <Animated.View style={[styles.fields, shakeStyle]}>
+          {/* Username */}
+          <View style={[styles.inputRow, error ? styles.inputError : null]}>
+            <Ionicons name="person-outline" size={18} color={Colors.muted} />
+            <TextInput
+              ref={usernameRef}
+              style={styles.input}
+              value={username}
+              onChangeText={(t) => { setUsername(t); setError(""); }}
+              placeholder="Usuário administrador"
+              placeholderTextColor={Colors.muted}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+              returnKeyType="next"
+              onSubmitEditing={() => passwordRef.current?.focus()}
+            />
+          </View>
+
+          {/* Password */}
           <View style={[styles.inputRow, error ? styles.inputError : null]}>
             <Ionicons name="lock-closed-outline" size={18} color={Colors.muted} />
             <TextInput
-              ref={inputRef}
+              ref={passwordRef}
               style={styles.input}
               value={password}
               onChangeText={(t) => { setPassword(t); setError(""); }}
@@ -109,17 +141,14 @@ export default function AdminLoginScreen() {
           ) : null}
         </Animated.View>
 
+        {/* Botão */}
         <Pressable
           onPress={handleLogin}
-          disabled={!password.trim() || isLoading}
-          style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
+          disabled={!canSubmit}
+          style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1, width: "100%" }]}
         >
           <LinearGradient
-            colors={
-              !password.trim() || isLoading
-                ? [Colors.border, Colors.border]
-                : [Colors.goldDark, Colors.gold]
-            }
+            colors={canSubmit ? [Colors.goldDark, Colors.gold] : [Colors.border, Colors.border]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.loginBtn}
@@ -128,9 +157,9 @@ export default function AdminLoginScreen() {
               <ActivityIndicator size="small" color={Colors.black} />
             ) : (
               <>
-                <Ionicons name="log-in-outline" size={18} color={password.trim() ? Colors.black : Colors.muted} />
-                <Text style={[styles.loginBtnText, !password.trim() && { color: Colors.muted }]}>
-                  Entrar
+                <Ionicons name="log-in-outline" size={18} color={canSubmit ? Colors.black : Colors.muted} />
+                <Text style={[styles.loginBtnText, !canSubmit && { color: Colors.muted }]}>
+                  Entrar no Painel
                 </Text>
               </>
             )}
@@ -139,9 +168,7 @@ export default function AdminLoginScreen() {
 
         <View style={styles.hint}>
           <Ionicons name="information-circle-outline" size={13} color={Colors.muted} />
-          <Text style={styles.hintText}>
-            A senha é definida nas configurações do servidor.
-          </Text>
+          <Text style={styles.hintText}>Acesso restrito a administradores autorizados.</Text>
         </View>
       </Animated.View>
     </View>
@@ -149,10 +176,7 @@ export default function AdminLoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.black,
-  },
+  container: { flex: 1, backgroundColor: Colors.black },
   inner: {
     flex: 1,
     paddingHorizontal: 28,
@@ -168,26 +192,28 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: "rgba(212,175,55,0.2)",
-    marginBottom: 8,
   },
+  titleArea: { alignItems: "center", gap: 4 },
   title: {
     fontFamily: "Outfit_800ExtraBold",
-    fontSize: 26,
+    fontSize: 28,
     color: Colors.text,
-    textAlign: "center",
+    letterSpacing: -0.5,
   },
   subtitle: {
+    fontFamily: "Outfit_600SemiBold",
+    fontSize: 13,
+    color: Colors.gold,
+    letterSpacing: 0.3,
+  },
+  desc: {
     fontFamily: "Outfit_400Regular",
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.textSecondary,
     textAlign: "center",
-    lineHeight: 20,
-    marginBottom: 8,
+    marginTop: 4,
   },
-  inputWrapper: {
-    width: "100%",
-    gap: 8,
-  },
+  fields: { width: "100%", gap: 12 },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -199,18 +225,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
-  inputError: {
-    borderColor: "#F87171",
-  },
+  inputError: { borderColor: "#F87171" },
   input: {
     flex: 1,
     fontFamily: "Outfit_400Regular",
-    fontSize: 16,
+    fontSize: 15,
     color: Colors.text,
   },
-  eyeBtn: {
-    padding: 4,
-  },
+  eyeBtn: { padding: 4 },
   errorRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -241,7 +263,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     paddingHorizontal: 4,
-    marginTop: 4,
   },
   hintText: {
     fontFamily: "Outfit_400Regular",

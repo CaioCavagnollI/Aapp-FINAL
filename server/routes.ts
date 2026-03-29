@@ -194,12 +194,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ===== ADMIN =====
 
   app.post("/api/admin/login", (req, res) => {
-    const { password } = req.body;
-    if (!password) return res.status(400).json({ error: "Senha obrigatória" });
+    const { username, password } = req.body;
+    if (!username || !password) return res.status(400).json({ error: "Usuário e senha obrigatórios" });
 
+    const adminUsername = process.env.ADMIN_USERNAME || "admin@nexus.atlas221177";
     const adminPassword = process.env.ADMIN_PASSWORD || "admin2211777_";
-    if (password !== adminPassword) {
-      return res.status(401).json({ error: "Senha incorreta" });
+
+    if (username !== adminUsername || password !== adminPassword) {
+      return res.status(401).json({ error: "Credenciais inválidas" });
     }
 
     const token = getAdminToken();

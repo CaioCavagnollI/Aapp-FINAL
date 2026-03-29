@@ -11,13 +11,14 @@ import { getApiUrl } from "@/lib/query-client";
 import { fetch } from "expo/fetch";
 
 const ADMIN_TOKEN_KEY = "nexusatlas_admin_token";
+const ADMIN_DEFAULT_USERNAME = "admin@nexus.atlas221177";
 const ADMIN_DEFAULT_PASSWORD = "admin2211777_";
 
 interface AdminContextValue {
   isLoggedIn: boolean;
   token: string | null;
   isLoading: boolean;
-  login: (password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
 }
 
@@ -27,13 +28,13 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const doLogin = async (password: string): Promise<string | null> => {
+  const doLogin = async (username: string, password: string): Promise<string | null> => {
     try {
       const baseUrl = getApiUrl();
       const res = await fetch(`${baseUrl}api/admin/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ username, password }),
       });
       if (!res.ok) return null;
       const data = (await res.json()) as { token: string };
@@ -53,7 +54,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
           return;
         }
         // Auto-login with default admin credentials
-        const newToken = await doLogin(ADMIN_DEFAULT_PASSWORD);
+        const newToken = await doLogin(ADMIN_DEFAULT_USERNAME, ADMIN_DEFAULT_PASSWORD);
         if (newToken) {
           await AsyncStorage.setItem(ADMIN_TOKEN_KEY, newToken);
           setToken(newToken);
@@ -68,11 +69,12 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (
+    username: string,
     password: string,
   ): Promise<{ success: boolean; error?: string }> => {
     try {
-      const newToken = await doLogin(password);
-      if (!newToken) return { success: false, error: "Senha incorreta" };
+      const newToken = await doLogin(username, password);
+      if (!newToken) return { success: false, error: "Credenciais inválidas" };
       await AsyncStorage.setItem(ADMIN_TOKEN_KEY, newToken);
       setToken(newToken);
       return { success: true };
