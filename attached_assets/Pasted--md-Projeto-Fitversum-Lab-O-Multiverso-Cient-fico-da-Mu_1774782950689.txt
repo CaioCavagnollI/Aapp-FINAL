@@ -1,0 +1,168 @@
+````md
+## Projeto: **Fitversum Lab: O Multiverso Científico da Musculação**
+Você é um **Arquiteto, Engenheiro de Software e Desenvolvedor Full-stack Sênior**.
+Seu objetivo é **projetar, implementar e criar** um ** **ecossistema SaaS** (Web + PWA + APP mobile)** com **IA própria governda e baseada em RAG**. **Focado em **prescrição de treinamento de força auditável**, com **IA baseada em fontes controladas, loja digital, marketplace e admin panel**. Não é um app fitness comum: é um **ecossistema técnico de alta autoridade** para profissionais e instituições que exigem **evidência, governança e performance real. É um ecossistema técnico com fontes científicas controladas e monetização integrada. **Fitversum Lab** é a plataforma premium que transforma ciência em **prescrição do treinamento de força**. 
+
+** A regra é: **autoridade científica + rastreabilidade + monetização + alcançe + software escalável.**
+
+---
+
+"## Ciência aplicada. Software escalável. Autoridade. Monetização. Alcançe. Resultados mensuráveis.
+
+O **Fitversum Lab: O Multiverso Científico da Musculação** é um ecossistema SaaS que transforma conhecimento científico em **prescrição de treinamento de força padronizada, auditável e escalável**. Desenvolvida para profissionais, instituições e empresas que exigem **evidência, controle e performance real**. Uma plataforma única que integra **inteligência artificial científica**, prescrição baseada em evidência, marketplace acadêmico e modelos SaaS de monetização.
+
+* Prescrição validada por ciência
+* IA treinada com base autoral controlada
+* Escalabilidade profissional e institucional
+
+---
+
+## 0) Regra-mãe (Governança)
+- **Core** (chat/prescrição/scanner/explicações): **AUTORAL > CURADO > EXTERNO** (externo só se explicitamente permitido). **Core sem web**.
+- **Acadêmico**: web permitido **somente** em `/ai/academic-*` (PubMed/Crossref/OpenAlex/Unpaywall).
+- **Sem base suficiente**: fallback seguro.
+- **Auditoria**: `scan_id/citationId/job_id/submission_id/edit_id` + quotas + logs.
+
+---
+
+## 1) Estrutura do Monorepo
+```txt
+fitversum-lab/
+  apps/
+    web/                      # Next.js 14 App Router + PWA
+    api/                      # NestJS API + Worker (BullMQ)
+    mobile/                   # Expo (React Native) - app iOS/Android
+  packages/
+    contracts/                # types shared + DTOs (zod opcional)
+    ui/                       # componentes compartilhados (opcional P1)
+    config/                   # tsconfig/eslint/prettier (opcional)
+  infra/
+    supabase/
+      migrations/
+      policies/
+      seeds/
+    qdrant/
+      collections/
+    redis/
+      scripts/
+  docs/
+    SPEC.md
+    PRD_SCANNER.md
+    BACKLOG.md
+  scripts/
+    create-fitversum-v5.js
+    seed-dev.ts
+  .env.example
+  package.json
+  pnpm-workspace.yaml
+  turbo.json
+  README.md
+````
+
+---
+
+## 2) Root (workspace + turbo)
+
+### `package.json` (root)
+
+```json
+{
+  "name": "fitversum-lab",
+  "private": true,
+  "version": "5.0.0",
+  "packageManager": "pnpm@10.0.0",
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "dev:web": "pnpm --filter web dev",
+    "dev:api": "pnpm --filter api start:dev",
+    "dev:worker": "pnpm --filter api worker:dev",
+    "dev:mobile": "pnpm --filter mobile start",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0",
+    "prettier": "^3.4.0",
+    "typescript": "^5.7.0"
+  }
+}
+```
+
+### `pnpm-workspace.yaml`
+
+```yaml
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "infra/*"
+  - "scripts"
+```
+
+### `turbo.json`
+
+```json
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "dev": { "cache": false, "persistent": true },
+    "build": { "dependsOn": ["^build"], "outputs": ["dist/**", ".next/**"] },
+    "lint": {},
+    "typecheck": {}
+  }
+}
+```
+
+### `.env.example`
+
+```env
+# ===== APP =====
+NODE_ENV=development
+NEXT_PUBLIC_APP_NAME=Fitversum Lab
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:4000
+
+# ===== SUPABASE (WEB PUBLIC) =====
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+
+# ===== SUPABASE (API SERVER) =====
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+
+# ===== DB / OPTIONAL DIRECT URL =====
+DATABASE_URL=
+
+# ===== REDIS / UPSTASH =====
+REDIS_URL=
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+
+# ===== QDRANT =====
+QDRANT_URL=
+QDRANT_API_KEY=
+
+# ===== AI =====
+AI_PROVIDER=openai
+OPENAI_API_KEY=
+ANTHROPIC_API_KEY=
+RAG_MIN_SCORE=0.72
+RAG_MIN_DOCS=1
+RAG_MIN_HITS=2
+RAG_TOPK=6
+FEATURE_RAG_PROVIDER=stub
+
+# ===== SCANNER =====
+FEATURE_SCANNER_PROVIDER=stub
+SCANNER_IMAGE_QUALITY_MIN=0.60
+SCANNER_VISION_CONF_MIN=0.60
+SCANNER_TOP1_TOP2_DELTA_MIN=0.10
+
+# ===== STRIPE =====
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
+
+# =...
