@@ -5,11 +5,16 @@ import crypto from "node:crypto";
 import multer from "multer";
 import path from "node:path";
 import fs from "node:fs";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { storage } from "./storage";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
+
+const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || "fitversum-jwt-secret";
 
 const SYSTEM_PROMPT = `Você é o Lab IA do Fitversum — um assistente especializado em treinamento de força científico, com profundo conhecimento em fisiologia do exercício, biomecânica e programação baseada em evidências.
 
@@ -49,12 +54,27 @@ function adminMiddleware(req: Request, res: Response, next: Function) {
   next();
 }
 
+function authMiddleware(req: Request & { userId?: string }, res: Response, next: Function) {
+  const authHeader = req.headers["authorization"];
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Token de autenticação obrigatório" });
+  }
+  const token = authHeader.slice(7);
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as { userId: string };
+    req.userId = payload.userId;
+    next();
+  } catch {
+    return res.status(401).json({ error: "Token inválido ou expirado" });
+  }
+}
+
 const UPLOADS_DIR = path.resolve(process.cwd(), "uploads");
 if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
 
-const storage = multer.diskStorage({
+const multerStorage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
   filename: (_req, file, cb) => {
     const timestamp = Date.now();
@@ -64,11 +84,80 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({
-  storage,
+  storage: multerStorage,
   limits: { fileSize: 50 * 1024 * 1024 },
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // ===== USER AUTH ROUTES =====
+
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      if (!username || !password) {
+        return res.status(400).json({ error: "Usuário e senha são obrigatórios" });
+      }
+      if (username.length < 3) {
+        return res.status(400).json({ error: "Usuário deve ter pelo menos 3 caracteres" });
+      }
+      if (password.length < 6) {
+        return res.status(400).json({ error: "Senha deve ter pelo menos 6 caracteres" });
+      }
+
+      const existing = await storage.getUserByUsername(username);
+      if (existing) {
+        return res.status(409).json({ error: "Usuário já existe" });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const user = await storage.createUser({ username, password: hashedPassword });
+
+      const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "30d" });
+      res.status(201).json({ token, user: { id: user.id, username: user.username } });
+    } catch (error) {
+      console.error("Register error:", error);
+      res.status(500).json({ error: "Erro ao criar conta" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      if (!username || !password) {
+        return res.status(400).json({ error: "Usuário e senha são obrigatórios" });
+      }
+
+      const user = await storage.getUserByUsername(username);
+      if (!user) {
+        return res.status(401).json({ error: "Usuário ou senha incorretos" });
+      }
+
+      const valid = await bcrypt.compare(password, user.password);
+      if (!valid) {
+        return res.status(401).json({ error: "Usuário ou senha incorretos" });
+      }
+
+      const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "30d" });
+      res.json({ token, user: { id: user.id, username: user.username } });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ error: "Erro ao fazer login" });
+    }
+  });
+
+  app.get("/api/auth/me", authMiddleware, async (req: Request & { userId?: string }, res) => {
+    try {
+      const user = await storage.getUser(req.userId!);
+      if (!user) return res.status(404).json({ error: "Usuário não encontrado" });
+      res.json({ user: { id: user.id, username: user.username } });
+    } catch (error) {
+      console.error("Me error:", error);
+      res.status(500).json({ error: "Erro ao buscar usuário" });
+    }
+  });
+
+  // ===== CHAT =====
+
   app.post("/api/chat", async (req, res) => {
     try {
       const { messages } = req.body;
@@ -101,6 +190,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       else { res.write(`data: ${JSON.stringify({ error: "Erro no stream" })}\n\n`); res.end(); }
     }
   });
+
+  // ===== ADMIN =====
 
   app.post("/api/admin/login", (req, res) => {
     const { password } = req.body;

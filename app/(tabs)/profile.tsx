@@ -21,6 +21,7 @@ import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import Colors from "@/constants/colors";
 import { useAdmin } from "@/contexts/AdminContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 const EXPERTISE_LEVELS = ["Beginner", "Intermediate", "Advanced", "Elite"];
 
@@ -77,6 +78,12 @@ export default function ProfileScreen() {
   const [selectedGoals, setSelectedGoals] = useState<string[]>(["hypertrophy"]);
   const [scienceMode, setScienceMode] = useState(true);
   const { isLoggedIn } = useAdmin();
+  const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    await logout();
+  };
 
   const topPadding = Platform.OS === "web" ? 67 : insets.top;
 
@@ -132,7 +139,7 @@ export default function ProfileScreen() {
               <Ionicons name="person" size={28} color={Colors.black} />
             </LinearGradient>
             <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>Athlete</Text>
+              <Text style={styles.profileName}>{user?.username || "Athlete"}</Text>
               <View style={styles.profileBadge}>
                 <Ionicons name="flask" size={11} color={Colors.gold} />
                 <Text style={styles.profileBadgeText}>Fitversum Lab Member</Text>
@@ -299,7 +306,22 @@ export default function ProfileScreen() {
           </Pressable>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(440).springify()}>
+        <Animated.View entering={FadeInDown.delay(410).springify()}>
+          <Pressable
+            onPress={handleLogout}
+            style={({ pressed }) => [styles.logoutBtn, { opacity: pressed ? 0.8 : 1 }]}
+          >
+            <View style={styles.logoutLeft}>
+              <View style={styles.logoutIconBox}>
+                <Ionicons name="log-out-outline" size={17} color="#FF6B6B" />
+              </View>
+              <Text style={styles.logoutLabel}>Sair da Conta</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={14} color={Colors.muted} />
+          </Pressable>
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(460).springify()}>
           <View style={styles.aboutCard}>
             <View style={styles.aboutRow}>
               <LinearGradient
@@ -649,5 +671,36 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: "#4ADE80",
+  },
+  logoutBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "rgba(255, 107, 107, 0.06)",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255, 107, 107, 0.15)",
+    marginBottom: 20,
+  },
+  logoutLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  logoutIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 11,
+    backgroundColor: "rgba(255, 107, 107, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 107, 107, 0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logoutLabel: {
+    fontFamily: "Outfit_500Medium",
+    fontSize: 15,
+    color: "#FF6B6B",
   },
 });

@@ -1,0 +1,513 @@
+FINALIZE ESTE PROJETO AGORA.
+
+Você está trabalhando em um novo projeto cuja base atual é o arquivo **APP-REPLIT-Fitversum-Nexus.zip**.
+
+Além da base atual, existem **dois anexos obrigatórios de referência e fusão**:
+
+1. **FINAL--WEB--ultima-nexus-fitlab-main (2).zip**
+   → referência principal de **design premium, páginas, módulos, submódulos, ferramentas, funcionalidades, estrutura visual e repertório web final**
+
+2. **ULTIMATE-Nexus-Fitlab-App-O-Multiverso-Cientifico-da-Musculacao (2).zip**
+   → referência principal de **fluxos mobile, app-first, navegação, estrutura de uso recorrente, telas mobile e repertório funcional de app**
+
+## MISSÃO
+
+Transformar a base atual **APP-REPLIT-Fitversum-Nexus.zip** na versão **final, premium, app-first, completa, coesa e pronta para deploy** do **Nexus Atlas**, fundindo de forma inteligente o melhor dos dois anexos obrigatórios.
+
+---
+
+## HIERARQUIA DE FUSÃO
+
+### BASE ATIVA
+
+* **APP-REPLIT-Fitversum-Nexus.zip**
+
+  * este é o projeto onde tudo deve ser implementado
+
+### REFERÊNCIA WEB OBRIGATÓRIA
+
+* **FINAL--WEB--ultima-nexus-fitlab-main (2).zip**
+
+  * usar como referência principal para:
+
+    * design
+    * identidade visual
+    * estética premium
+    * páginas
+    * módulos
+    * submódulos
+    * ferramentas
+    * funcionalidades
+    * repertório de produto
+    * hierarquia visual
+    * estrutura premium final
+
+### REFERÊNCIA APP-FIRST OBRIGATÓRIA
+
+* **ULTIMATE-Nexus-Fitlab-App-O-Multiverso-Cientifico-da-Musculacao (2).zip**
+
+  * usar como referência principal para:
+
+    * navegação mobile
+    * fluxos app-first
+    * experiência de uso recorrente
+    * estrutura de telas mobile
+    * organização de funcionalidades no app
+    * fluxo de autenticação e uso diário
+    * scanner
+    * chat
+    * prescrição
+    * loja
+    * perfil
+    * ergonomia mobile
+
+---
+
+## REGRA ABSOLUTA
+
+O projeto final deve ser construído **dentro da base APP-REPLIT**, mas precisa absorver o que houver de melhor nos **dois anexos**.
+
+### OBRIGAÇÃO
+
+* o design deve ficar **extremamente parecido** com o projeto **FINAL-WEB Ultima**
+* o app deve ficar **muito mais rico em módulos, páginas, submódulos, ferramentas e funcionalidades**
+* a experiência mobile deve ficar **muito mais forte**, usando como apoio o **ULTIMATE Multiverso**
+
+### NÃO ACEITO
+
+* app simplificado demais
+* design fraco
+* visual genérico
+* poucas telas
+* poucos módulos
+* poucas ferramentas
+* poucas funcionalidades
+* paridade ruim com o FINAL-WEB
+* perda do foco app-first
+* fusão incompleta
+
+---
+
+## IDIOMA OBRIGATÓRIO
+
+Tudo deve estar **100% em português do Brasil (PT-BR)**:
+
+* navegação
+* labels
+* botões
+* mensagens
+* estados
+* erros
+* admin
+* billing
+* pricing
+* onboarding
+* store
+* perfil
+* scanner
+* Atlas
+* qualquer interface
+
+NÃO misturar inglês.
+
+---
+
+## APP-FIRST OBRIGATÓRIO
+
+A experiência principal é mobile.
+
+### NAVEGAÇÃO PRINCIPAL
+
+A navegação principal **não é lateral**.
+Ela deve ser uma **barra inferior (bottom tab bar)**.
+
+### TABS OBRIGATÓRIAS
+
+A barra inferior principal deve conter:
+
+* Hoje
+* Treino
+* Atlas
+* Scanner
+* Prescrever
+* Loja
+* Perfil
+
+### REGRAS
+
+* Chat pode ficar dentro de Atlas ou com acesso rápido claro
+* Admin não precisa ficar nas tabs, mas deve existir com acesso seguro
+* Treino e Scanner devem estar presentes como tabs reais, não apenas como rotas isoladas
+
+---
+
+## PARIDADE COM A VERSÃO WEB FINAL
+
+Analise o arquivo **FINAL--WEB--ultima-nexus-fitlab-main (2).zip** e replique no app, adaptando para mobile, o máximo possível de:
+
+* páginas
+* módulos
+* submódulos
+* ferramentas
+* funcionalidades
+* componentes
+* organização visual
+* seções premium
+* blocos de dashboard
+* repertório funcional
+
+### NÚCLEO OBRIGATÓRIO
+
+O app final deve conter, no mínimo, versão mobile consistente de:
+
+* Hoje / Dashboard
+* Treino
+* Programas
+* Sessões
+* Atlas
+* Mentor
+* Chat
+* Scanner
+* Histórico do scanner
+* Prescrever
+* Criar prescrição
+* Histórico de prescrição
+* Anamnese
+* Performance
+* Progresso
+* Insights
+* Academic
+* Research
+* Editorial
+* Library
+* Favoritos
+* Uploads
+* Lab / calculadoras
+* Clients
+* Coach
+* Billing
+* Pricing
+* Store
+* Integrations
+* Settings
+* Profile
+* Admin
+
+Se algum bloco importante existir no FINAL-WEB e não existir no app, implemente agora dentro da lógica mobile.
+
+---
+
+## REFORÇO APP-FIRST PELO ANEXO ULTIMATE MULTIVERSO
+
+Analise o arquivo **ULTIMATE-Nexus-Fitlab-App-O-Multiverso-Cientifico-da-Musculacao (2).zip** e absorva dele o que houver de melhor para:
+
+* fluxo mobile
+* auth mobile
+* tabs
+* chat
+* scanner
+* prescrição
+* loja
+* perfil
+* organização de telas
+* rotina de uso diário
+* ergonomia mobile
+* UX de app real
+
+O app final deve combinar:
+
+* **a estética e repertório funcional do FINAL-WEB**
+* com **a força mobile e app-first do ULTIMATE Multiverso**
+* implementado dentro da base **APP-REPLIT**
+
+---
+
+## DESIGN PREMIUM OBRIGATÓRIO
+
+O design atual da base APP-REPLIT está abaixo do necessário.
+
+Ele deve ser corrigido para ficar:
+
+* premium
+* científico
+* robusto
+* moderno
+* elegante
+* consistente
+* forte visualmente
+* claramente superior à base original
+
+### APLICAR
+
+* tipografia premium
+* espaçamento consistente
+* cards melhores
+* cabeçalhos melhores
+* seções com hierarquia visual
+* ícones consistentes
+* componentes reutilizáveis
+* estados vazios elegantes
+* loaders refinados
+* feedback visual claro
+* sensação de produto real
+
+### REMOVER
+
+* aparência de protótipo cru
+* visual genérico
+* telas pobres
+* inconsistência entre páginas
+* design fraco
+* componentes improvisados
+
+---
+
+## ADMIN MASTER OBRIGATÓRIO
+
+Criar e corrigir acesso master com poder total.
+
+### CREDENCIAIS OBRIGATÓRIAS
+
+* usuário/login: **admin@nexus.atlas221177**
+* email admin: **admin@nexus.atlas221177**
+* senha: **admin2211777_**
+
+### ESSE ADMIN DEVE CONTROLAR
+
+* usuários
+* billing
+* planos
+* store
+* uploads
+* conteúdo
+* analytics
+* logs
+* sistema completo
+* configurações globais
+* permissões
+* gestão administrativa total
+
+### PLANO DO ADMIN
+
+O admin deve estar vinculado ao **melhor plano disponível**, com:
+
+* acesso vitalício
+* acesso total
+* sem recorrência
+* sem limitação funcional
+* privilégios máximos do sistema
+
+### REGRA
+
+Substituir qualquer credencial anterior diferente dessas.
+
+---
+
+## PLANO VITALÍCIO OBRIGATÓRIO
+
+Criar, corrigir ou padronizar o principal plano como:
+
+### NOME OFICIAL
+
+**Vitalício Nexus Atlas**
+
+### EXIGÊNCIAS
+
+* acesso total
+* sem recorrência
+* destaque visual
+* presente em pricing e billing
+* coerente com a marca
+* visível como melhor plano
+* disponível para vínculo ao admin master
+
+Remover nomes inconsistentes como “Lifetime” isolado, “Pro+” desconectado da marca ou qualquer nomenclatura inferior.
+
+---
+
+## UPLOADS OBRIGATÓRIOS
+
+Certifique-se de que o sistema permita realizar todos os uploads necessários com estabilidade.
+
+### GARANTIR SUPORTE A UPLOAD DE:
+
+* imagens
+* PDFs
+* documentos
+* arquivos de biblioteca
+* arquivos editoriais
+* arquivos de pesquisa
+* uploads do scanner
+* anexos relacionados ao Atlas
+* conteúdos administrativos
+
+### EXIGÊNCIAS
+
+* fluxo de upload funcional
+* estados de envio, sucesso e erro
+* preview quando aplicável
+* histórico de uploads quando fizer sentido
+* integração com admin
+* integração com biblioteca e conteúdo
+
+---
+
+## INTEGRAÇÃO DO SCANNER
+
+Adicionar, preservar ou preparar a integração do scanner usando os códigos abaixo, quando necessários para embed, fallback, módulo de integração ou tela dedicada.
+
+### INTEGRAÇÃO 1
+
+```html
+<iframe 
+  src="https://351e4c56-34f1-4ea8-a674-4abad950716d-00-bjc1oo7fteio.kirk.replit.dev/scanner" 
+  width="100%" 
+  height="600" 
+  style="border:none; border-radius:12px;"
+  allow="camera; microphone"
+></iframe>
+```
+
+### INTEGRAÇÃO 2
+
+```html
+<iframe 
+  src="https://351e4c56-34f1-4ea8-a674-4abad950716d-00-bjc1oo7fteio.kirk.replit.dev/scanner" 
+  width="100%" 
+  height="600" 
+  style="border:none; border-radius:12px;"
+  allow="camera; microphone"
+></iframe>
+```
+
+### EXIGÊNCIA
+
+* integrar o scanner ao app de modo coerente
+* criar fallback por iframe quando necessário
+* manter acesso à câmera e microfone
+* encaixar o scanner como módulo real do produto, não como bloco solto
+* permitir uso dentro do fluxo app-first
+
+---
+
+## CORREÇÕES OBRIGATÓRIAS
+
+Corrigir agora:
+
+* branding antigo Fitversum no que for central
+* design fraco
+* tabs faltantes
+* ausência de Treino e Scanner como tabs principais
+* módulos faltantes
+* páginas faltantes
+* submódulos faltantes
+* ferramentas faltantes
+* funcionalidades ausentes
+* admin incompleto
+* pricing incompleto
+* divergência com o FINAL-WEB
+* fragilidade do app-first
+
+---
+
+## ACABAMENTO FINAL COM AGRESSIVIDADE MÁXIMA
+
+Agora faça o acabamento final com agressividade máxima:
+
+* aumente ainda mais a paridade visual e funcional com o **FINAL-WEB Ultima**
+* reforce o app-first com base no **ULTIMATE Multiverso**
+* complete todos os módulos faltantes
+* corrija a barra inferior com as tabs obrigatórias
+* valide o admin master com as credenciais corretas
+* padronize o plano **Vitalício Nexus Atlas**
+* elimine o branding antigo
+* garanta que uploads funcionem corretamente
+* integre os códigos do scanner quando necessário
+* deixe tudo pronto para build e deploy imediato
+
+---
+
+## LIMPEZA E HARDENING
+
+Remover e corrigir:
+
+* código morto
+* duplicações
+* imports quebrados
+* rotas quebradas
+* componentes órfãos
+* inconsistências entre auth, app e admin
+* arquivos desnecessários
+* estruturas legadas que atrapalham
+* branding antigo desnecessário
+
+Garantir:
+
+* build estável
+* navegação estável
+* estados consistentes
+* tipagem melhorada
+* scripts corretos
+* projeto pronto para deploy
+
+---
+
+## DOCUMENTAÇÃO OBRIGATÓRIA
+
+Gerar ou atualizar:
+
+* README.md
+* PRD.md
+* BLUEPRINT.md
+* MASTER_DOC.md
+* ARCHITECTURE.md
+* ROUTES.md
+* LAUNCH_CHECKLIST.md
+
+Esses documentos devem refletir a versão final do app após a fusão.
+
+---
+
+## CRITÉRIO DE SUCESSO
+
+O trabalho só termina quando:
+
+* a base APP-REPLIT estiver profundamente melhorada
+* o app estiver muito mais próximo do FINAL-WEB em design e repertório funcional
+* o app estiver muito mais forte em mobile por influência do ULTIMATE Multiverso
+* tudo estiver em PT-BR
+* a barra principal for inferior
+* as tabs obrigatórias existirem
+* o admin master estiver correto
+* o plano Vitalício Nexus Atlas estiver correto
+* os uploads funcionarem
+* o scanner estiver integrado de modo útil
+* os módulos e funcionalidades estiverem ampliados
+* o projeto estiver pronto para build e deploy
+
+---
+
+## SAÍDA FINAL OBRIGATÓRIA
+
+Ao terminar:
+
+1. listar tudo que foi corrigido
+2. listar tudo que foi incorporado do FINAL-WEB Ultima
+3. listar tudo que foi incorporado do ULTIMATE Multiverso
+4. listar páginas, módulos, submódulos, ferramentas e funcionalidades adicionadas
+5. confirmar credenciais finais do admin
+6. confirmar o plano Vitalício Nexus Atlas
+7. confirmar funcionamento dos uploads
+8. confirmar integração do scanner
+9. confirmar que está pronto para deploy
+
+---
+
+## POSTURA
+
+Não pergunte.
+Não simplifique.
+Não entregue meia fusão.
+Não mantenha a pobreza estrutural da base original.
+
+Faça a fusão completa agora, dentro da base APP-REPLIT, usando os dois anexos obrigatórios como referências centrais, e finalize o Nexus Atlas como app premium definitivo.
