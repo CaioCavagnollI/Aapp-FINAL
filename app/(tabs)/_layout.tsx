@@ -1,38 +1,15 @@
-import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Tabs } from "expo-router";
-import { NativeTabs, Icon, Label } from "expo-router/unstable-native-tabs";
 import { BlurView } from "expo-blur";
-import { SymbolView } from "expo-symbols";
 import { Platform, StyleSheet, View } from "react-native";
 import React from "react";
 import { Ionicons } from "@expo/vector-icons";
-
 import Colors from "@/constants/colors";
 
-function NativeTabLayout() {
-  return (
-    <NativeTabs>
-      <NativeTabs.Trigger name="index">
-        <Icon sf={{ default: "house", selected: "house.fill" }} />
-        <Label>Home</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="chat">
-        <Icon sf={{ default: "brain", selected: "brain.fill" }} />
-        <Label>AI Lab</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="programs">
-        <Icon sf={{ default: "dumbbell", selected: "dumbbell.fill" }} />
-        <Label>Programs</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="profile">
-        <Icon sf={{ default: "person.crop.circle", selected: "person.crop.circle.fill" }} />
-        <Label>Profile</Label>
-      </NativeTabs.Trigger>
-    </NativeTabs>
-  );
+function TabIcon({ name, color }: { name: string; color: string }) {
+  return <Ionicons name={name as any} size={22} color={color} />;
 }
 
-function ClassicTabLayout() {
+export default function TabLayout() {
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
 
@@ -45,82 +22,77 @@ function ClassicTabLayout() {
         tabBarStyle: {
           position: "absolute",
           backgroundColor: isIOS ? "transparent" : Colors.black,
-          borderTopWidth: isWeb ? 1 : 0,
+          borderTopWidth: 1,
           borderTopColor: Colors.border,
           elevation: 0,
-          ...(isWeb ? { height: 84 } : {}),
+          height: isWeb ? 84 : 62,
+          paddingBottom: isWeb ? 20 : 8,
         },
         tabBarLabelStyle: {
           fontFamily: "Outfit_500Medium",
-          fontSize: 11,
+          fontSize: 10,
+          marginTop: -2,
         },
         tabBarBackground: () =>
           isIOS ? (
-            <BlurView
-              intensity={80}
-              tint="dark"
-              style={StyleSheet.absoluteFill}
-            />
-          ) : isWeb ? (
+            <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} />
+          ) : (
             <View style={[StyleSheet.absoluteFill, { backgroundColor: Colors.black }]} />
-          ) : null,
+          ),
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
-          tabBarIcon: ({ color }) =>
-            Platform.OS === "ios" ? (
-              <SymbolView name="house.fill" tintColor={color} size={22} />
-            ) : (
-              <Ionicons name="home" size={22} color={color} />
-            ),
+          title: "Hoje",
+          tabBarIcon: ({ color }) => <TabIcon name="today-outline" color={color} />,
         }}
       />
       <Tabs.Screen
-        name="chat"
+        name="treino"
         options={{
-          title: "AI Lab",
-          tabBarIcon: ({ color }) =>
-            Platform.OS === "ios" ? (
-              <SymbolView name="brain" tintColor={color} size={22} />
-            ) : (
-              <Ionicons name="flask" size={22} color={color} />
-            ),
+          title: "Treino",
+          tabBarIcon: ({ color }) => <TabIcon name="barbell-outline" color={color} />,
         }}
       />
       <Tabs.Screen
-        name="programs"
+        name="atlas"
         options={{
-          title: "Programs",
-          tabBarIcon: ({ color }) =>
-            Platform.OS === "ios" ? (
-              <SymbolView name="dumbbell.fill" tintColor={color} size={22} />
-            ) : (
-              <Ionicons name="barbell" size={22} color={color} />
-            ),
+          title: "Atlas",
+          tabBarIcon: ({ color }) => <TabIcon name="flask-outline" color={color} />,
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="scanner"
         options={{
-          title: "Profile",
-          tabBarIcon: ({ color }) =>
-            Platform.OS === "ios" ? (
-              <SymbolView name="person.crop.circle.fill" tintColor={color} size={22} />
-            ) : (
-              <Ionicons name="person" size={22} color={color} />
-            ),
+          title: "Scanner",
+          tabBarIcon: ({ color }) => <TabIcon name="scan-outline" color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="prescrever"
+        options={{
+          title: "Prescrever",
+          tabBarIcon: ({ color }) => <TabIcon name="document-text-outline" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="loja"
+        options={{
+          title: "Loja",
+          tabBarIcon: ({ color }) => <TabIcon name="storefront-outline" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="perfil"
+        options={{
+          title: "Perfil",
+          tabBarIcon: ({ color }) => <TabIcon name="person-circle-outline" color={color} />,
+        }}
+      />
+      <Tabs.Screen name="chat" options={{ href: null }} />
+      <Tabs.Screen name="programs" options={{ href: null }} />
+      <Tabs.Screen name="profile" options={{ href: null }} />
     </Tabs>
   );
-}
-
-export default function TabLayout() {
-  if (isLiquidGlassAvailable()) {
-    return <NativeTabLayout />;
-  }
-  return <ClassicTabLayout />;
 }

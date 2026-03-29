@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -10,211 +10,160 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withSequence,
-  withTiming,
-  FadeInDown,
-} from "react-native-reanimated";
-import { router } from "expo-router";
+import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
+import { router } from "expo-router";
 import Colors from "@/constants/colors";
+import { useAuth } from "@/contexts/AuthContext";
 
-const FEATURED_ITEMS = [
-  {
-    id: "1",
-    title: "Sobrecarga Progressiva",
-    subtitle: "O pilar central da hipertrofia",
-    tag: "Fundamental",
-    icon: "trending-up" as const,
-    question: "Explique a sobrecarga progressiva e como implementá-la de forma otimizada para hipertrofia com base na pesquisa atual.",
-  },
-  {
-    id: "2",
-    title: "RPE e Autorregulação",
-    subtitle: "Treine com mais inteligência",
-    tag: "Intermediário",
-    icon: "pulse" as const,
-    question: "O que é treino baseado em RPE e como a autorregulação otimiza os ganhos de força em comparação a programas com percentuais fixos?",
-  },
-  {
-    id: "3",
-    title: "Recrutamento de Unidades Motoras",
-    subtitle: "Ciência neuromuscular desvendada",
-    tag: "Avançado",
-    icon: "flash" as const,
-    question: "Explique o recrutamento de unidades motoras, o princípio do tamanho e como isso se aplica à seleção de exercícios e faixas de repetições para força máxima.",
-  },
+const INSIGHTS = [
+  { icon: "flash-outline", title: "Sobrecarga Progressiva", subtitle: "Aumente 2,5kg por semana em exercícios principais", tag: "Princípio" },
+  { icon: "refresh-outline", title: "Volume de Treino", subtitle: "10–20 séries por grupamento muscular por semana", tag: "Volume" },
+  { icon: "moon-outline", title: "Recuperação Muscular", subtitle: "48–72h entre estímulos do mesmo grupamento", tag: "Recuperação" },
 ];
 
-const QUICK_TOPICS = [
-  { label: "Volume", icon: "layers-outline" as const, question: "Qual é o volume de treino semanal ideal para hipertrofia segundo as pesquisas atuais?" },
-  { label: "Intervalos", icon: "timer-outline" as const, question: "O que a ciência diz sobre os intervalos de descanso ideais entre séries para hipertrofia vs força?" },
-  { label: "Frequência", icon: "calendar-outline" as const, question: "Quantas vezes por semana devo treinar cada grupo muscular para otimizar a hipertrofia?" },
-  { label: "Intensidade", icon: "barbell-outline" as const, question: "Qual intensidade (% de 1RM) devo usar para hipertrofia vs força máxima?" },
-  { label: "Deload", icon: "battery-charging-outline" as const, question: "Quando e como fazer deload? O que as pesquisas dizem sobre estratégias de semana de deload?" },
-  { label: "Periodização", icon: "git-branch-outline" as const, question: "Compare periodização linear, ondulatória e em blocos para levantadores intermediários. Qual é a melhor?" },
+const QUICK_ACTIONS = [
+  { icon: "flask-outline", label: "Atlas IA", route: "/(tabs)/atlas", color: "#D4AF37" },
+  { icon: "scan-outline", label: "Scanner", route: "/(tabs)/scanner", color: "#60A5FA" },
+  { icon: "document-text-outline", label: "Prescrever", route: "/(tabs)/prescrever", color: "#4ADE80" },
+  { icon: "barbell-outline", label: "Treino", route: "/(tabs)/treino", color: "#F472B6" },
 ];
 
-function StatCard({ value, label, icon }: { value: string; label: string; icon: string }) {
-  return (
-    <View style={styles.statCard}>
-      <Ionicons name={icon as any} size={18} color={Colors.gold} />
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
-  );
-}
+const STATS = [
+  { label: "Treinos", value: "0", sub: "este mês", icon: "barbell-outline" },
+  { label: "Volume", value: "0t", sub: "total", icon: "trending-up-outline" },
+  { label: "Sequência", value: "0d", sub: "seguidos", icon: "flame-outline" },
+  { label: "Prescrições", value: "0", sub: "ativas", icon: "document-text-outline" },
+];
 
-function FeaturedCard({ item, index }: { item: typeof FEATURED_ITEMS[0]; index: number }) {
-  const scale = useSharedValue(1);
-  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-
-  const handlePress = () => {
-    scale.value = withSequence(withSpring(0.96), withSpring(1));
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push({ pathname: "/(tabs)/chat", params: { initialMessage: item.question } });
-  };
-
-  return (
-    <Animated.View entering={FadeInDown.delay(index * 100).springify()} style={animStyle}>
-      <Pressable onPress={handlePress}>
-        <LinearGradient
-          colors={["#1A1A1C", "#111113"]}
-          style={styles.featuredCard}
-        >
-          <View style={styles.featuredCardHeader}>
-            <View style={styles.featuredIconWrapper}>
-              <Ionicons name={item.icon} size={20} color={Colors.gold} />
-            </View>
-            <View style={styles.tagBadge}>
-              <Text style={styles.tagText}>{item.tag}</Text>
-            </View>
-          </View>
-          <Text style={styles.featuredTitle}>{item.title}</Text>
-          <Text style={styles.featuredSubtitle}>{item.subtitle}</Text>
-          <View style={styles.featuredFooter}>
-            <Text style={styles.exploreText}>Perguntar ao Lab IA</Text>
-            <Ionicons name="arrow-forward" size={14} color={Colors.gold} />
-          </View>
-        </LinearGradient>
-      </Pressable>
-    </Animated.View>
-  );
-}
-
-function QuickTopicChip({ item }: { item: typeof QUICK_TOPICS[0] }) {
-  const scale = useSharedValue(1);
-  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-
-  const handlePress = () => {
-    scale.value = withSequence(withTiming(0.94, { duration: 80 }), withSpring(1));
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push({ pathname: "/(tabs)/chat", params: { initialMessage: item.question } });
-  };
-
-  return (
-    <Animated.View style={animStyle}>
-      <Pressable onPress={handlePress} style={styles.chip}>
-        <Ionicons name={item.icon} size={14} color={Colors.gold} />
-        <Text style={styles.chipText}>{item.label}</Text>
-      </Pressable>
-    </Animated.View>
-  );
-}
-
-export default function HomeScreen() {
+export default function HojeScreen() {
   const insets = useSafeAreaInsets();
-  const scrollRef = useRef<ScrollView>(null);
+  const { user } = useAuth();
+  const topPad = Platform.OS === "web" ? 67 : insets.top;
 
-  const topPadding = Platform.OS === "web" ? 67 : insets.top;
+  const getGreeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return "Bom dia";
+    if (h < 18) return "Boa tarde";
+    return "Boa noite";
+  };
+
+  const today = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
 
   return (
     <View style={styles.container}>
       <ScrollView
-        ref={scrollRef}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingTop: topPadding + 16, paddingBottom: Platform.OS === "web" ? 34 : 100 },
-        ]}
+        contentContainerStyle={[styles.content, { paddingTop: topPad + 12, paddingBottom: Platform.OS === "web" ? 120 : 100 }]}
       >
-        <Animated.View entering={FadeInDown.springify()}>
-          <View style={styles.headerRow}>
-            <View>
-              <Text style={styles.greeting}>Bom treino,</Text>
-              <Text style={styles.appTitle}>Fitversum Lab</Text>
-            </View>
-            <LinearGradient
-              colors={[Colors.goldDark, Colors.gold]}
-              style={styles.avatarBadge}
-            >
-              <Ionicons name="flask" size={20} color={Colors.black} />
+        <Animated.View entering={FadeIn.duration(500)} style={styles.header}>
+          <View>
+            <Text style={styles.greeting}>{getGreeting()}, {user?.username || "Atleta"}</Text>
+            <Text style={styles.dateText}>{today}</Text>
+          </View>
+          <Pressable onPress={() => router.push("/(tabs)/atlas")} style={styles.atlasBtn}>
+            <LinearGradient colors={[Colors.goldDark, Colors.gold]} style={styles.atlasBtnGrad}>
+              <Ionicons name="flask" size={18} color={Colors.black} />
             </LinearGradient>
-          </View>
+          </Pressable>
+        </Animated.View>
 
-          <View style={styles.taglineRow}>
-            <View style={styles.scienceBadge}>
-              <Ionicons name="checkmark-circle" size={12} color={Colors.gold} />
-              <Text style={styles.scienceBadgeText}>Ciência Baseada em Evidências</Text>
+        <Animated.View entering={FadeInDown.delay(80).springify()} style={styles.statsRow}>
+          {STATS.map((s) => (
+            <View key={s.label} style={styles.statCard}>
+              <Ionicons name={s.icon as any} size={16} color={Colors.gold} style={{ marginBottom: 6 }} />
+              <Text style={styles.statValue}>{s.value}</Text>
+              <Text style={styles.statLabel}>{s.label}</Text>
+              <Text style={styles.statSub}>{s.sub}</Text>
             </View>
-          </View>
-        </Animated.View>
-
-        <Animated.View entering={FadeInDown.delay(80).springify()}>
-          <View style={styles.statsRow}>
-            <StatCard value="gpt-5.2" label="Modelo IA" icon="sparkles-outline" />
-            <StatCard value="RAG" label="Governado" icon="shield-checkmark-outline" />
-            <StatCard value="1000+" label="Estudos" icon="library-outline" />
-          </View>
-        </Animated.View>
-
-        <Animated.View entering={FadeInDown.delay(120).springify()}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Tópicos Científicos</Text>
-            <Text style={styles.sectionSubtitle}>Perguntar ao Lab IA</Text>
-          </View>
-        </Animated.View>
-
-        <View style={styles.featuredList}>
-          {FEATURED_ITEMS.map((item, i) => (
-            <FeaturedCard key={item.id} item={item} index={i} />
           ))}
-        </View>
+        </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(400).springify()}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Consulta Rápida</Text>
-            <Text style={styles.sectionSubtitle}>Toque para perguntar</Text>
-          </View>
-          <View style={styles.chipGrid}>
-            {QUICK_TOPICS.map((item) => (
-              <QuickTopicChip key={item.label} item={item} />
+        <Animated.View entering={FadeInDown.delay(140).springify()}>
+          <Text style={styles.sectionTitle}>Acesso Rápido</Text>
+          <View style={styles.quickGrid}>
+            {QUICK_ACTIONS.map((a) => (
+              <Pressable
+                key={a.label}
+                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push(a.route as any); }}
+                style={({ pressed }) => [styles.quickCard, { opacity: pressed ? 0.8 : 1 }]}
+              >
+                <View style={[styles.quickIconBox, { backgroundColor: `${a.color}18`, borderColor: `${a.color}30` }]}>
+                  <Ionicons name={a.icon as any} size={22} color={a.color} />
+                </View>
+                <Text style={styles.quickLabel}>{a.label}</Text>
+              </Pressable>
             ))}
           </View>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(500).springify()}>
-          <Pressable
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              router.push("/(tabs)/chat");
-            }}
-            style={({ pressed }) => [styles.ctaButton, { opacity: pressed ? 0.85 : 1 }]}
-          >
-            <LinearGradient
-              colors={[Colors.goldDark, Colors.gold, Colors.goldLight]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.ctaGradient}
+        <Animated.View entering={FadeInDown.delay(200).springify()}>
+          <Text style={styles.sectionTitle}>Sessão de Hoje</Text>
+          <LinearGradient colors={["#1A1A1C", "#111113"]} style={styles.sessionCard}>
+            <View style={styles.sessionHeader}>
+              <View>
+                <Text style={styles.sessionTitle}>Nenhum treino programado</Text>
+                <Text style={styles.sessionSub}>Crie ou selecione um programa de treino</Text>
+              </View>
+              <View style={styles.sessionIconBox}>
+                <Ionicons name="barbell-outline" size={22} color={Colors.muted} />
+              </View>
+            </View>
+            <Pressable
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push("/(tabs)/treino"); }}
+              style={({ pressed }) => [styles.sessionBtn, { opacity: pressed ? 0.85 : 1 }]}
             >
-              <Ionicons name="chatbubble-ellipses" size={18} color={Colors.black} />
-              <Text style={styles.ctaText}>Abrir Lab IA</Text>
-              <Ionicons name="arrow-forward" size={16} color={Colors.black} />
-            </LinearGradient>
-          </Pressable>
+              <LinearGradient colors={[Colors.goldDark, Colors.gold]} style={styles.sessionBtnGrad}>
+                <Text style={styles.sessionBtnText}>Ir para Treino</Text>
+                <Ionicons name="arrow-forward" size={16} color={Colors.black} />
+              </LinearGradient>
+            </Pressable>
+          </LinearGradient>
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(260).springify()}>
+          <View style={styles.sectionRow}>
+            <Text style={styles.sectionTitle}>Insights Científicos</Text>
+            <Pressable onPress={() => router.push("/(tabs)/atlas")}>
+              <Text style={styles.seeAll}>Ver mais</Text>
+            </Pressable>
+          </View>
+          {INSIGHTS.map((ins) => (
+            <Pressable
+              key={ins.title}
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push("/(tabs)/atlas"); }}
+              style={({ pressed }) => [styles.insightCard, { opacity: pressed ? 0.85 : 1 }]}
+            >
+              <View style={styles.insightIconBox}>
+                <Ionicons name={ins.icon as any} size={18} color={Colors.gold} />
+              </View>
+              <View style={styles.insightText}>
+                <View style={styles.insightRow}>
+                  <Text style={styles.insightTitle}>{ins.title}</Text>
+                  <View style={styles.insightTag}><Text style={styles.insightTagText}>{ins.tag}</Text></View>
+                </View>
+                <Text style={styles.insightSub}>{ins.subtitle}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={14} color={Colors.muted} />
+            </Pressable>
+          ))}
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(320).springify()}>
+          <LinearGradient colors={["rgba(212,175,55,0.15)", "rgba(212,175,55,0.05)"]} style={styles.nexusBanner}>
+            <View style={styles.nexusBannerLeft}>
+              <View style={styles.nexusLogo}>
+                <Ionicons name="flask" size={18} color={Colors.gold} />
+              </View>
+              <View>
+                <Text style={styles.nexusTitle}>Nexus Atlas</Text>
+                <Text style={styles.nexusSub}>Ciência aplicada ao treino de força</Text>
+              </View>
+            </View>
+            <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push("/(tabs)/loja"); }}>
+              <Text style={styles.nexusCta}>Explorar →</Text>
+            </Pressable>
+          </LinearGradient>
         </Animated.View>
       </ScrollView>
     </View>
@@ -222,203 +171,45 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.black,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-  },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 12,
-  },
-  greeting: {
-    fontFamily: "Outfit_400Regular",
-    fontSize: 14,
-    color: Colors.textSecondary,
-    letterSpacing: 0.3,
-  },
-  appTitle: {
-    fontFamily: "Outfit_800ExtraBold",
-    fontSize: 28,
-    color: Colors.text,
-    letterSpacing: -0.5,
-    marginTop: 2,
-  },
-  avatarBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  taglineRow: {
-    marginBottom: 24,
-  },
-  scienceBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    alignSelf: "flex-start",
-    backgroundColor: "rgba(212, 175, 55, 0.1)",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.2)",
-  },
-  scienceBadgeText: {
-    fontFamily: "Outfit_500Medium",
-    fontSize: 12,
-    color: Colors.gold,
-  },
-  statsRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: 28,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: Colors.card,
-    borderRadius: 14,
-    padding: 14,
-    alignItems: "center",
-    gap: 4,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  statValue: {
-    fontFamily: "Outfit_700Bold",
-    fontSize: 13,
-    color: Colors.text,
-    marginTop: 2,
-  },
-  statLabel: {
-    fontFamily: "Outfit_400Regular",
-    fontSize: 10,
-    color: Colors.textSecondary,
-    textAlign: "center",
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "baseline",
-    marginBottom: 14,
-  },
-  sectionTitle: {
-    fontFamily: "Outfit_700Bold",
-    fontSize: 18,
-    color: Colors.text,
-  },
-  sectionSubtitle: {
-    fontFamily: "Outfit_400Regular",
-    fontSize: 12,
-    color: Colors.gold,
-  },
-  featuredList: {
-    gap: 12,
-    marginBottom: 28,
-  },
-  featuredCard: {
-    borderRadius: 18,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  featuredCardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 14,
-  },
-  featuredIconWrapper: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: "rgba(212, 175, 55, 0.1)",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.2)",
-  },
-  tagBadge: {
-    backgroundColor: "rgba(212, 175, 55, 0.08)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.15)",
-  },
-  tagText: {
-    fontFamily: "Outfit_500Medium",
-    fontSize: 11,
-    color: Colors.gold,
-  },
-  featuredTitle: {
-    fontFamily: "Outfit_700Bold",
-    fontSize: 18,
-    color: Colors.text,
-    marginBottom: 4,
-  },
-  featuredSubtitle: {
-    fontFamily: "Outfit_400Regular",
-    fontSize: 14,
-    color: Colors.textSecondary,
-    marginBottom: 16,
-  },
-  featuredFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  exploreText: {
-    fontFamily: "Outfit_500Medium",
-    fontSize: 13,
-    color: Colors.gold,
-  },
-  chipGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-    marginBottom: 28,
-  },
-  chip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: Colors.card,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 30,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  chipText: {
-    fontFamily: "Outfit_500Medium",
-    fontSize: 13,
-    color: Colors.text,
-  },
-  ctaButton: {
-    borderRadius: 16,
-    overflow: "hidden",
-    marginBottom: 8,
-  },
-  ctaGradient: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-  },
-  ctaText: {
-    fontFamily: "Outfit_700Bold",
-    fontSize: 16,
-    color: Colors.black,
-    flex: 1,
-    textAlign: "center",
-  },
+  container: { flex: 1, backgroundColor: Colors.black },
+  content: { paddingHorizontal: 20 },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 24 },
+  greeting: { fontFamily: "Outfit_700Bold", fontSize: 22, color: Colors.text, letterSpacing: -0.3 },
+  dateText: { fontFamily: "Outfit_400Regular", fontSize: 13, color: Colors.textSecondary, marginTop: 2, textTransform: "capitalize" },
+  atlasBtn: { borderRadius: 14, overflow: "hidden" },
+  atlasBtnGrad: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  statsRow: { flexDirection: "row", gap: 10, marginBottom: 28 },
+  statCard: { flex: 1, backgroundColor: Colors.card, borderRadius: 16, padding: 12, alignItems: "center", borderWidth: 1, borderColor: Colors.border },
+  statValue: { fontFamily: "Outfit_700Bold", fontSize: 18, color: Colors.text, letterSpacing: -0.5 },
+  statLabel: { fontFamily: "Outfit_600SemiBold", fontSize: 10, color: Colors.textSecondary, marginTop: 2 },
+  statSub: { fontFamily: "Outfit_400Regular", fontSize: 9, color: Colors.muted },
+  sectionTitle: { fontFamily: "Outfit_700Bold", fontSize: 18, color: Colors.text, marginBottom: 14, letterSpacing: -0.3 },
+  sectionRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 14 },
+  seeAll: { fontFamily: "Outfit_500Medium", fontSize: 13, color: Colors.gold },
+  quickGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 28, justifyContent: "space-between" },
+  quickCard: { width: "22%", alignItems: "center", gap: 8 },
+  quickIconBox: { width: 54, height: 54, borderRadius: 16, alignItems: "center", justifyContent: "center", borderWidth: 1 },
+  quickLabel: { fontFamily: "Outfit_500Medium", fontSize: 11, color: Colors.textSecondary, textAlign: "center" },
+  sessionCard: { borderRadius: 20, padding: 20, borderWidth: 1, borderColor: Colors.border, marginBottom: 28 },
+  sessionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 18 },
+  sessionTitle: { fontFamily: "Outfit_600SemiBold", fontSize: 16, color: Colors.text, marginBottom: 4 },
+  sessionSub: { fontFamily: "Outfit_400Regular", fontSize: 12, color: Colors.textSecondary },
+  sessionIconBox: { width: 44, height: 44, borderRadius: 12, backgroundColor: Colors.cardElevated, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.border },
+  sessionBtn: { borderRadius: 12, overflow: "hidden" },
+  sessionBtnGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 13 },
+  sessionBtnText: { fontFamily: "Outfit_700Bold", fontSize: 14, color: Colors.black },
+  insightCard: { flexDirection: "row", alignItems: "center", backgroundColor: Colors.card, borderRadius: 16, padding: 16, marginBottom: 10, borderWidth: 1, borderColor: Colors.border, gap: 14 },
+  insightIconBox: { width: 42, height: 42, borderRadius: 12, backgroundColor: "rgba(212,175,55,0.1)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(212,175,55,0.2)" },
+  insightText: { flex: 1 },
+  insightRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
+  insightTitle: { fontFamily: "Outfit_600SemiBold", fontSize: 14, color: Colors.text, flex: 1 },
+  insightTag: { backgroundColor: "rgba(212,175,55,0.12)", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 20, borderWidth: 1, borderColor: "rgba(212,175,55,0.2)" },
+  insightTagText: { fontFamily: "Outfit_500Medium", fontSize: 10, color: Colors.gold },
+  insightSub: { fontFamily: "Outfit_400Regular", fontSize: 12, color: Colors.textSecondary },
+  nexusBanner: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderRadius: 18, padding: 16, borderWidth: 1, borderColor: "rgba(212,175,55,0.25)", marginTop: 8, marginBottom: 8 },
+  nexusBannerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
+  nexusLogo: { width: 36, height: 36, borderRadius: 10, backgroundColor: "rgba(212,175,55,0.12)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(212,175,55,0.2)" },
+  nexusTitle: { fontFamily: "Outfit_700Bold", fontSize: 15, color: Colors.text },
+  nexusSub: { fontFamily: "Outfit_400Regular", fontSize: 11, color: Colors.textSecondary, marginTop: 1 },
+  nexusCta: { fontFamily: "Outfit_600SemiBold", fontSize: 13, color: Colors.gold },
 });

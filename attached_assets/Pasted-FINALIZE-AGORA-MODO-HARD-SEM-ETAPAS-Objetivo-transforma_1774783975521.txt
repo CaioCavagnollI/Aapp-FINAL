@@ -1,0 +1,102 @@
+FINALIZE AGORA (MODO HARD, SEM ETAPAS).
+
+Objetivo: transformar este projeto na versão final **Nexus Atlas**, app-first, premium, completo e pronto para deploy.
+
+## EXECUÇÃO ÚNICA
+
+1. FUSÃO
+
+* base: APP-REPLIT
+* usar FINAL-WEB Ultima → design, páginas, módulos, funcionalidades
+* usar ULTIMATE Multiverso → mobile, tabs, fluxo app-first
+* não duplicar, não recriar do zero, só consolidar e elevar
+
+2. APP-FIRST
+
+* navegação principal = barra inferior
+* tabs obrigatórias:
+  Hoje / Treino / Atlas / Scanner / Prescrever / Loja / Perfil
+* remover sidebar como principal
+
+3. PARIDADE WEB
+
+* adaptar para mobile os módulos principais do FINAL-WEB
+* expandir o app até ficar próximo em estrutura e funcionalidades
+
+4. DESIGN PREMIUM
+
+* padronizar UI (tipografia, spacing, cards, botões)
+* remover aparência de protótipo
+* garantir consistência visual total
+
+5. ADMIN MASTER
+   login: admin@nexus.atlas221177
+   senha: admin2211777_
+
+* acesso total ao sistema
+* vinculado ao melhor plano
+
+6. PLANO
+   Nome: **Vitalício Nexus Atlas**
+
+* acesso total
+* sem recorrência
+* destaque no pricing
+
+7. UPLOADS
+
+* garantir uploads de imagens, PDFs e arquivos
+* integrar com admin e conteúdo
+
+8. SCANNER
+
+* integrar como módulo real
+* acesso pela tab Scanner
+* permitir câmera
+* usar iframe como fallback se necessário
+
+9. MARCA (CRÍTICO)
+
+* substituir totalmente Fitversum por **Nexus Atlas**
+* atualizar:
+  nome do app
+  títulos
+  textos
+  headers
+  branding visual
+  rotas
+* NÃO deixar nenhum resquício de marca antiga
+
+10. LIMPEZA
+
+* remover código morto, duplicações, rotas quebradas, arquivos inúteis
+
+11. HARDENING
+
+* corrigir build, imports, estados, navegação, tipagem
+
+12. DEPLOY
+
+* deixar build funcionando
+* pronto para deploy imediato
+
+## REGRAS
+
+* tudo em PT-BR
+* não perguntar
+* não parar
+* não simplificar
+* entregar completo
+
+## SAÍDA
+
+* confirmar marca Nexus Atlas aplicada
+* confirmar admin funcional
+* confirmar plano vitalício
+* confirmar tabs corretas
+* confirmar scanner
+* confirmar uploads
+* confirmar build ok
+* confirmar pronto para deploy
+
+EXECUTE AGORA.
