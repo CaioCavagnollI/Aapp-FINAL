@@ -156,8 +156,8 @@ export default function HojeScreen() {
                 <Ionicons name="flask" size={18} color={Colors.gold} />
               </View>
               <View>
-                <Text style={styles.nexusTitle}>Nexus Atlas</Text>
-                <Text style={styles.nexusSub}>Ciência aplicada ao treino de força</Text>
+                <Text style={styles.nexusTitle}>Nexus</Text>
+                <Text style={styles.nexusSub}>A Plataforma Científica do Treinamento de Força</Text>
               </View>
             </View>
             <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push("/(tabs)/loja"); }}>

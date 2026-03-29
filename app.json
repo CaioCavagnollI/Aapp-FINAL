@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Fitversum Lab",
-    "slug": "fitversum-lab",
+    "name": "Nexus",
+    "slug": "nexus-atlas",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "fitversumlab",
+    "scheme": "nexusatlas",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
@@ -15,10 +15,10 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.fitversumlab"
+      "bundleIdentifier": "com.nexusatlas"
     },
     "android": {
-      "package": "com.fitversumlab",
+      "package": "com.nexusatlas",
       "adaptiveIcon": {
         "backgroundColor": "#0B0B0C",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

@@ -1,0 +1,144 @@
+EXECUTE LIMPEZA COMPLETA DE BRANDING AGORA.
+
+Objetivo: garantir que o projeto esteja **100% padronizado como Nexus Atlas**, sem nenhum resquício de marca antiga.
+
+---
+
+## AÇÃO DIRETA
+
+1. SUBSTITUIÇÃO GLOBAL
+
+* localizar e substituir TODAS as ocorrências de:
+
+  * Fitversum
+  * Nexus FitLab (se ainda existir em partes antigas)
+  * nomes inconsistentes
+* substituir por:
+  **Nexus Atlas**
+
+---
+
+2. VERIFICAR TODOS OS LOCAIS
+   Aplicar a substituição em:
+
+### Código
+
+* componentes
+* páginas
+* hooks
+* services
+* store
+* context
+* API
+* configs
+
+### Interface
+
+* títulos
+* headers
+* textos
+* botões
+* labels
+* mensagens
+* loaders
+* estados vazios
+
+### Navegação
+
+* nomes de rotas
+* breadcrumbs
+* títulos de telas
+
+### Sistema
+
+* nome do app
+* nome exibido no header
+* nome exibido no login
+* nome exibido no dashboard
+
+### Configurações
+
+* package.json (name, description)
+* app.json / app.config
+* manifest
+* envs
+* metadata
+
+### Documentação
+
+* README.md
+* PRD.md
+* BLUEPRINT.md
+* MASTER_DOC.md
+* ARCHITECTURE.md
+* ROUTES.md
+
+---
+
+3. IDENTIDADE FINAL
+
+Padronizar:
+
+Nome oficial:
+**Nexus Atlas**
+
+Se necessário:
+
+* subtítulo: plataforma científica de musculação
+* evitar múltiplos nomes concorrentes
+
+---
+
+4. UI/UX
+
+Atualizar:
+
+* logo textual
+* headers principais
+* splash (se houver)
+* tela de login
+* tela inicial
+* dashboard
+
+Garantir consistência visual com a nova marca.
+
+---
+
+5. REMOVER RESÍDUOS
+
+Eliminar:
+
+* strings antigas esquecidas
+* comentários com nome antigo
+* variáveis com nome antigo (se críticas)
+* arquivos com nome antigo irrelevante
+* assets desnecessários
+
+---
+
+6. VALIDAÇÃO FINAL
+
+Confirmar:
+
+* nenhuma ocorrência de “Fitversum” no projeto
+* nenhuma ocorrência inconsistente de nome antigo
+* todas as telas exibem “Nexus Atlas”
+* documentação atualizada
+* app consistente com a nova marca
+
+---
+
+## SAÍDA OBRIGATÓRIA
+
+Responder com:
+
+1. quantidade de ocorrências substituídas
+2. locais principais alterados
+3. confirmação de limpeza total
+4. confirmação de padronização como Nexus Atlas
+
+---
+
+NÃO PULE ETAPAS.
+NÃO DEIXE RESÍDUOS.
+EXECUTE LIMPEZA TOTAL AGORA.

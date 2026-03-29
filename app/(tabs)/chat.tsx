@@ -261,7 +261,7 @@ export default function ChatScreen() {
               >
                 <Ionicons name="flask" size={36} color={Colors.gold} />
               </LinearGradient>
-              <Text style={styles.emptyTitle}>Lab IA Fitversum</Text>
+              <Text style={styles.emptyTitle}>Atlas IA</Text>
               <Text style={styles.emptySubtitle}>
                 Pergunte qualquer coisa sobre ciência do treino, programação ou fisiologia do exercício.
               </Text>

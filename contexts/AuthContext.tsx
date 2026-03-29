@@ -10,8 +10,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getApiUrl } from "@/lib/query-client";
 import { fetch } from "expo/fetch";
 
-const AUTH_TOKEN_KEY = "fitversum_auth_token";
-const AUTH_USER_KEY = "fitversum_auth_user";
+const AUTH_TOKEN_KEY = "nexusatlas_auth_token";
+const AUTH_USER_KEY = "nexusatlas_auth_user";
 
 export interface AuthUser {
   id: string;

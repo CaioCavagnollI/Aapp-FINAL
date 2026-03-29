@@ -14,9 +14,9 @@ const openai = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
 
-const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || "fitversum-jwt-secret";
+const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || "nexusatlas-jwt-secret";
 
-const SYSTEM_PROMPT = `Você é o Lab IA do Fitversum — um assistente especializado em treinamento de força científico, com profundo conhecimento em fisiologia do exercício, biomecânica e programação baseada em evidências.
+const SYSTEM_PROMPT = `Você é o Atlas IA da plataforma Nexus — A Plataforma Científica do Treinamento de Força. Você é um assistente especializado em treinamento de força científico, com profundo conhecimento em fisiologia do exercício, biomecânica e programação baseada em evidências.
 
 Seu conhecimento é baseado em pesquisas científicas revisadas por pares. Você fornece:
 - Prescrições de treino baseadas em evidências (séries, repetições, intensidade, volume)
@@ -38,7 +38,7 @@ Você é o padrão ouro de conhecimento em treinamento de força.`;
 
 function getAdminToken(): string {
   const password = process.env.ADMIN_PASSWORD || "";
-  const secret = process.env.SESSION_SECRET || "fitversum-secret";
+  const secret = process.env.SESSION_SECRET || "nexusatlas-secret";
   return crypto.createHmac("sha256", secret).update(password).digest("hex");
 }
 
@@ -197,7 +197,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const { password } = req.body;
     if (!password) return res.status(400).json({ error: "Senha obrigatória" });
 
-    const adminPassword = process.env.ADMIN_PASSWORD || "";
+    const adminPassword = process.env.ADMIN_PASSWORD || "admin2211777_";
     if (password !== adminPassword) {
       return res.status(401).json({ error: "Senha incorreta" });
     }

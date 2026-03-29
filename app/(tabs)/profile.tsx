@@ -142,7 +142,7 @@ export default function ProfileScreen() {
               <Text style={styles.profileName}>{user?.username || "Athlete"}</Text>
               <View style={styles.profileBadge}>
                 <Ionicons name="flask" size={11} color={Colors.gold} />
-                <Text style={styles.profileBadgeText}>Fitversum Lab Member</Text>
+                <Text style={styles.profileBadgeText}>Nexus Member</Text>
               </View>
             </View>
           </LinearGradient>
@@ -331,8 +331,8 @@ export default function ProfileScreen() {
                 <Ionicons name="flask" size={16} color={Colors.black} />
               </LinearGradient>
               <View style={styles.aboutText}>
-                <Text style={styles.aboutTitle}>Fitversum Lab</Text>
-                <Text style={styles.aboutVersion}>O Multiverso Científico da Musculação</Text>
+                <Text style={styles.aboutTitle}>Nexus</Text>
+                <Text style={styles.aboutVersion}>A Plataforma Científica do Treinamento de Força</Text>
               </View>
             </View>
             <Text style={styles.aboutDescription}>

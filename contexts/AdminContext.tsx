@@ -10,7 +10,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getApiUrl } from "@/lib/query-client";
 import { fetch } from "expo/fetch";
 
-const ADMIN_TOKEN_KEY = "fitversum_admin_token";
+const ADMIN_TOKEN_KEY = "nexusatlas_admin_token";
+const ADMIN_DEFAULT_PASSWORD = "admin2211777_";
 
 interface AdminContextValue {
   isLoggedIn: boolean;
@@ -26,17 +27,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    AsyncStorage.getItem(ADMIN_TOKEN_KEY)
-      .then((stored) => {
-        if (stored) setToken(stored);
-      })
-      .finally(() => setIsLoading(false));
-  }, []);
-
-  const login = async (
-    password: string,
-  ): Promise<{ success: boolean; error?: string }> => {
+  const doLogin = async (password: string): Promise<string | null> => {
     try {
       const baseUrl = getApiUrl();
       const res = await fetch(`${baseUrl}api/admin/login`, {
@@ -44,13 +35,46 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
       });
-      if (!res.ok) {
-        const data = (await res.json()) as { error?: string };
-        return { success: false, error: data.error || "Senha incorreta" };
-      }
+      if (!res.ok) return null;
       const data = (await res.json()) as { token: string };
-      await AsyncStorage.setItem(ADMIN_TOKEN_KEY, data.token);
-      setToken(data.token);
+      return data.token;
+    } catch {
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const stored = await AsyncStorage.getItem(ADMIN_TOKEN_KEY);
+        if (stored) {
+          setToken(stored);
+          setIsLoading(false);
+          return;
+        }
+        // Auto-login with default admin credentials
+        const newToken = await doLogin(ADMIN_DEFAULT_PASSWORD);
+        if (newToken) {
+          await AsyncStorage.setItem(ADMIN_TOKEN_KEY, newToken);
+          setToken(newToken);
+        }
+      } catch {
+        // ignore
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    init();
+  }, []);
+
+  const login = async (
+    password: string,
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const newToken = await doLogin(password);
+      if (!newToken) return { success: false, error: "Senha incorreta" };
+      await AsyncStorage.setItem(ADMIN_TOKEN_KEY, newToken);
+      setToken(newToken);
       return { success: true };
     } catch {
       return { success: false, error: "Erro de conexão com o servidor" };

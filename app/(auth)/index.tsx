@@ -98,8 +98,9 @@ export default function AuthScreen() {
             >
               <Ionicons name="flask" size={32} color={Colors.black} />
             </LinearGradient>
-            <Text style={styles.appName}>Fitversum Lab</Text>
-            <Text style={styles.appTagline}>O Multiverso Científico da Musculação</Text>
+            <Text style={styles.appName}>Nexus</Text>
+            <Text style={styles.appTagline}>A Plataforma Científica do Treinamento de Força</Text>
+            <Text style={styles.appPowered}>Powered by Atlas</Text>
           </Animated.View>
 
           <Animated.View entering={FadeInDown.delay(150).springify()} style={styles.card}>
@@ -274,8 +275,16 @@ const styles = StyleSheet.create({
   appTagline: {
     fontFamily: "Outfit_400Regular",
     fontSize: 13,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    marginBottom: 2,
+  },
+  appPowered: {
+    fontFamily: "Outfit_500Medium",
+    fontSize: 11,
     color: Colors.gold,
     textAlign: "center",
+    letterSpacing: 0.5,
   },
   card: {
     backgroundColor: Colors.card,

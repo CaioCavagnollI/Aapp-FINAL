@@ -1,22 +1,48 @@
-# Fitversum Lab — replit.md
+# Nexus — replit.md
 
 ## Overview
 
-**Fitversum Lab** is a science-based strength training mobile app built with Expo (React Native). It acts as an AI-powered coaching assistant that provides evidence-based workout prescriptions, periodization programs, and exercise science education — all delivered in Brazilian Portuguese.
+**Nexus** — *A Plataforma Científica do Treinamento de Força* — is a premium science-based strength training mobile app built with Expo (React Native) and an Express.js backend. The AI engine is branded **Atlas IA** (*Powered by Atlas*). All UI is in Brazilian Portuguese (PT-BR).
 
 The app is structured as a full-stack project running in a single Replit environment:
 - A **React Native / Expo** frontend using file-based routing via Expo Router
-- An **Express.js backend** serving as the API layer (chat, file management, admin)
-- A **PostgreSQL database** managed via Drizzle ORM
-- **OpenAI API** integration for the AI Lab chat feature
+- An **Express.js backend** serving as the API layer (auth, chat, file management, admin)
+- **OpenAI API** integration (via Replit AI Integrations) for Atlas IA streaming chat
 
-The target audience is strength athletes and coaches who want scientifically grounded training guidance. The app includes an admin panel for uploading knowledge base documents, a conversational AI assistant, curated training programs, and a user profile screen.
+---
+
+## Branding
+
+| Field | Value |
+|---|---|
+| App name | **Nexus** |
+| Slogan | A Plataforma Científica do Treinamento de Força |
+| Subtitle | Powered by Atlas |
+| AI engine | Atlas IA |
+| Language | PT-BR (Brazilian Portuguese) |
+| Colors | Gold `#D4AF37` / Black `#0B0B0C` |
 
 ---
 
 ## User Preferences
 
-Preferred communication style: Simple, everyday language.
+Preferred communication style: Simple, everyday language. PT-BR throughout.
+
+---
+
+## Navigation — 7 Tabs
+
+| Tab | Screen | Route |
+|---|---|---|
+| Hoje | Dashboard diário | `app/(tabs)/index.tsx` |
+| Treino | Programas e sessões | `app/(tabs)/treino.tsx` |
+| Atlas | Atlas IA + Conteúdo científico | `app/(tabs)/atlas.tsx` |
+| Scanner | Scanner de códigos e nutrição | `app/(tabs)/scanner.tsx` |
+| Prescrever | Prescrições para clientes | `app/(tabs)/prescrever.tsx` |
+| Loja | Planos, programas, conteúdo | `app/(tabs)/loja.tsx` |
+| Perfil | Conta, configurações, admin | `app/(tabs)/perfil.tsx` |
+
+Hidden (legacy, href:null): `chat`, `programs`, `profile`
 
 ---
 
@@ -26,113 +52,77 @@ Preferred communication style: Simple, everyday language.
 
 - **Framework**: Expo SDK ~54 with `expo-router` ~6 for file-based navigation
 - **Routing structure**:
-  - `app/(tabs)/` — Main user-facing tabs: Home (`index`), AI Chat (`chat`), Programs (`programs`), Profile (`profile`)
-  - `app/(admin)/` — Protected admin area: Login (`login`) and Admin Panel (`index`)
-  - `app/_layout.tsx` — Root layout wrapping everything in providers
-- **Tab bar**: Conditionally uses iOS native tabs (via `expo-router/unstable-native-tabs` and `expo-glass-effect`) on iOS with Liquid Glass support, and a classic Expo `Tabs` component on other platforms
-- **Fonts**: Outfit font family (300–800 weight) loaded via `@expo-google-fonts/outfit`
-- **Animations**: `react-native-reanimated` for fluid UI animations; `expo-haptics` for tactile feedback
-- **State management**: TanStack React Query v5 (`@tanstack/react-query`) for server state / data fetching
-- **Keyboard handling**: `react-native-keyboard-controller` with a platform-compatible wrapper (`KeyboardAwareScrollViewCompat`)
-- **Error handling**: Class-based `ErrorBoundary` + `ErrorFallback` components for graceful crash UI
+  - `app/(tabs)/` — 7-tab main navigation (Hoje, Treino, Atlas, Scanner, Prescrever, Loja, Perfil)
+  - `app/(auth)/` — Login/Register screen (`index.tsx`)
+  - `app/(admin)/` — Protected admin area: Login (`login`) and Panel (`index`)
+  - `app/_layout.tsx` — Root layout with AuthGuard + AdminProvider + AuthProvider
+- **Auth guard**: `components/AuthGuard.tsx` using `useSegments` + `useRouter` for route protection
+- **Fonts**: Outfit font family (300–800 weight) via `@expo-google-fonts/outfit`
+- **Animations**: `react-native-reanimated` + `expo-haptics` for haptic feedback
+- **State management**: TanStack React Query v5 for server state; React Context for auth/admin state
+- **Keyboard handling**: `react-native-keyboard-controller`
 
 ### Backend (Express.js)
 
-- **Framework**: Express v5 (`express`)
-- **Entry point**: `server/index.ts` — sets up CORS, JSON parsing, static file serving, and registers routes
+- **Entry point**: `server/index.ts`
 - **Routes** (`server/routes.ts`):
-  - `POST /api/admin/login` — Password-based admin auth returning an HMAC token
-  - `POST /api/chat` — Streaming AI chat using OpenAI (with a fixed scientific system prompt in Portuguese)
-  - `GET/POST/DELETE /api/admin/files` — File upload/management for the knowledge base (uses `multer` for multipart uploads)
-  - Protected admin routes use a custom `adminMiddleware` that validates the HMAC token via `x-admin-token` header
-- **Storage**: `server/storage.ts` currently uses an in-memory `MemStorage` class (not yet wired to PostgreSQL for users)
-- **File uploads**: `multer` v2 handles document uploads to a local directory
-
-### Database
-
-- **ORM**: Drizzle ORM with PostgreSQL dialect
-- **Schema location**: `shared/schema.ts` (users table) and `shared/models/chat.ts` (conversations + messages tables)
-- **Migrations**: Generated into `./migrations/` via `drizzle-kit push` / `drizzle-kit generate`
-- **Connection**: Requires `DATABASE_URL` environment variable
-- **Tables defined**:
-  - `users` — id (UUID), username, password
-  - `conversations` — id (serial), title, createdAt
-  - `messages` — id (serial), conversationId (FK → conversations), role, content, createdAt
-- **Note**: The Drizzle schema is defined but the Express routes and storage layer are not yet fully integrated with the DB (storage uses in-memory fallback)
+  - `POST /api/auth/register` — User registration (bcryptjs hashed password, JWT issued)
+  - `POST /api/auth/login` — User login → JWT (30d expiry)
+  - `GET /api/auth/me` — Validate JWT, return user info
+  - `POST /api/admin/login` — Admin auth. Default password: `admin2211777_`. Returns HMAC token.
+  - `POST /api/chat` — Streaming Atlas IA chat (OpenAI)
+  - `GET/POST/DELETE /api/admin/files` — Knowledge base file management (multer)
+- **Storage**: `server/storage.ts` — in-memory `MemStorage` for users
+- **File uploads**: `multer` v2 → `./uploads/` directory
 
 ### Authentication & Authorization
 
-- **Admin auth**: Simple password-based system. The admin password is stored as an env var (`ADMIN_PASSWORD`). Login returns an HMAC-SHA256 token (signed with `SESSION_SECRET`). The token is stored client-side in `AsyncStorage` and sent via `x-admin-token` header on admin API calls.
-- **Admin context**: `contexts/AdminContext.tsx` provides login/logout state to the React tree, persisting the token across sessions via `@react-native-async-storage/async-storage`
-- **No user authentication**: Regular users have no login system yet
+- **User auth**: JWT-based. `bcryptjs` for hashing. 30-day token expiry. Stored in `AsyncStorage` via `contexts/AuthContext.tsx`.
+- **Admin auth**: Password HMAC-SHA256 token. Default password: `admin2211777_`. Auto-login on app start (no manual login needed). Stored via `contexts/AdminContext.tsx`.
+- **Route protection**: `AuthGuard` component in root layout redirects unauthenticated users to `/(auth)`.
+
+### Admin Credentials
+
+| Field | Value |
+|---|---|
+| Login identifier | `admin@nexus.atlas221177` |
+| Password | `admin2211777_` |
+| Auto-login | Yes (AdminContext auto-logs in on startup) |
+
+### Plano Vitalício Nexus
+
+- Featured in `app/(tabs)/loja.tsx` as the premium plan
+- Price: R$ 997 (or 12x R$ 97)
+- Includes: Atlas IA ilimitado, todos os programas, scanner avançado, prescrições ilimitadas
 
 ### AI Integration
 
-- **Provider**: OpenAI (configurable base URL via `AI_INTEGRATIONS_OPENAI_BASE_URL`)
-- **System prompt**: Fixed Portuguese-language prompt defining the AI as a strength training expert ("Lab IA do Fitversum")
-- **Chat flow**: Streaming responses via the `/api/chat` endpoint; the frontend uses `fetch` with streamed text decoding
-- **Knowledge base**: Admin can upload documents (PDF, etc.) that are intended to form the RAG knowledge base (file management routes exist; RAG pipeline not yet fully implemented)
-
-### Networking & API Client
-
-- **API URL resolution**: `lib/query-client.ts` builds the base URL from `EXPO_PUBLIC_DOMAIN` env var
-- **Expo dev proxy**: Dev script sets `EXPO_PACKAGER_PROXY_URL` and `REACT_NATIVE_PACKAGER_HOSTNAME` to the Replit dev domain for Metro bundler
-- **CORS**: The Express server allows origins matching `REPLIT_DEV_DOMAIN` and `REPLIT_DOMAINS` env vars, plus any `localhost` origin
+- **Engine**: Atlas IA (powered by OpenAI via Replit AI Integrations)
+- **System prompt**: Portuguese-language prompt defining the AI as Nexus platform's Atlas IA — specialized strength training science assistant
+- **Chat flow**: Streaming SSE via `/api/chat`; decoded on frontend with `expo/fetch`
 
 ### Design System
 
-- **Color palette**: Dark theme only (`userInterfaceStyle: "dark"`). Gold (`#D4AF37`) as primary accent on near-black backgrounds (`#0B0B0C`). Defined in `constants/colors.ts`
-- **Background**: `#0B0B0C` (splash + default background)
-- **Gradients**: `expo-linear-gradient` used throughout for premium feel
+- **Theme**: Dark only (`userInterfaceStyle: "dark"`)
+- **Primary accent**: Gold `#D4AF37` / Dark Gold `#A8892B`
+- **Background**: `#0B0B0C`
+- **Cards**: `#111113` / `#18181A`
+- **Border**: `#232327`
+- **Muted**: `#6B6B75`
+- **Gradients**: `expo-linear-gradient` throughout
+- **Font**: Outfit (300/400/500/600/700/800)
 
 ---
 
-## External Dependencies
+## Environment Variables
 
-### Core Mobile / UI
-| Package | Purpose |
-|---|---|
-| `expo` ~54 | Core Expo SDK |
-| `expo-router` ~6 | File-based navigation |
-| `expo-blur` | Blur effects for tab bar on iOS |
-| `expo-glass-effect` | iOS Liquid Glass tab bar |
-| `expo-symbols` | SF Symbols for iOS tab icons |
-| `expo-linear-gradient` | Gradient backgrounds and cards |
-| `expo-haptics` | Haptic feedback |
-| `expo-image` | Optimized image component |
-| `expo-image-picker` | Camera roll / photo selection |
-| `expo-document-picker` | File picking for admin uploads |
-| `expo-location` | Location access (future use) |
-| `react-native-reanimated` | Smooth animations |
-| `react-native-gesture-handler` | Gesture support |
-| `react-native-keyboard-controller` | Keyboard-aware scroll views |
-| `@expo-google-fonts/outfit` | Outfit font family |
-
-### Data & State
-| Package | Purpose |
-|---|---|
-| `@tanstack/react-query` v5 | Server state management / caching |
-| `@react-native-async-storage/async-storage` | Persistent local storage (admin token) |
-
-### Backend
-| Package | Purpose |
-|---|---|
-| `express` v5 | HTTP server and API routing |
-| `multer` v2 | Multipart file upload handling |
-| `openai` v6 | OpenAI API client (chat completions) |
-| `drizzle-orm` | Type-safe PostgreSQL ORM |
-| `drizzle-zod` | Schema validation from Drizzle tables |
-| `pg` | PostgreSQL driver |
-| `p-limit` / `p-retry` | Concurrency control / retry logic |
-
-### Environment Variables Required
 | Variable | Purpose |
 |---|---|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `AI_INTEGRATIONS_OPENAI_API_KEY` | OpenAI API key |
-| `AI_INTEGRATIONS_OPENAI_BASE_URL` | (Optional) Custom OpenAI-compatible base URL |
-| `ADMIN_PASSWORD` | Admin panel password |
+| `AI_INTEGRATIONS_OPENAI_API_KEY` | OpenAI API key (Replit AI Integration) |
+| `AI_INTEGRATIONS_OPENAI_BASE_URL` | OpenAI-compatible base URL |
+| `ADMIN_PASSWORD` | Admin password override (default: `admin2211777_`) |
 | `SESSION_SECRET` | HMAC signing secret for admin tokens |
-| `EXPO_PUBLIC_DOMAIN` | Public domain for API URL resolution in the app |
-| `REPLIT_DEV_DOMAIN` | Replit dev domain (auto-set by Replit) |
-| `REPLIT_DOMAINS` | Replit production domains (auto-set by Replit) |
+| `JWT_SECRET` | JWT signing secret for user auth |
+| `EXPO_PUBLIC_DOMAIN` | Public domain for API URL resolution |
+| `REPLIT_DEV_DOMAIN` | Replit dev domain (auto-set) |
+| `REPLIT_DOMAINS` | Replit production domains (auto-set) |
