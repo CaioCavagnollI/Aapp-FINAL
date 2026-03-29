@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useState, useMemo, ReactNode, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useMemo,
+  ReactNode,
+  useEffect,
+} from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getApiUrl } from "@/lib/query-client";
 import { fetch } from "expo/fetch";
@@ -21,11 +28,15 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     AsyncStorage.getItem(ADMIN_TOKEN_KEY)
-      .then((stored) => { if (stored) setToken(stored); })
+      .then((stored) => {
+        if (stored) setToken(stored);
+      })
       .finally(() => setIsLoading(false));
   }, []);
 
-  const login = async (password: string): Promise<{ success: boolean; error?: string }> => {
+  const login = async (
+    password: string,
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
       const baseUrl = getApiUrl();
       const res = await fetch(`${baseUrl}api/admin/login`, {
@@ -34,10 +45,10 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ password }),
       });
       if (!res.ok) {
-        const data = await res.json() as { error?: string };
+        const data = (await res.json()) as { error?: string };
         return { success: false, error: data.error || "Senha incorreta" };
       }
-      const data = await res.json() as { token: string };
+      const data = (await res.json()) as { token: string };
       await AsyncStorage.setItem(ADMIN_TOKEN_KEY, data.token);
       setToken(data.token);
       return { success: true };
@@ -51,15 +62,20 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     setToken(null);
   };
 
-  const value = useMemo(() => ({
-    isLoggedIn: !!token,
-    token,
-    isLoading,
-    login,
-    logout,
-  }), [token, isLoading]);
+  const value = useMemo(
+    () => ({
+      isLoggedIn: !!token,
+      token,
+      isLoading,
+      login,
+      logout,
+    }),
+    [token, isLoading],
+  );
 
-  return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>;
+  return (
+    <AdminContext.Provider value={value}>{children}</AdminContext.Provider>
+  );
 }
 
 export function useAdmin() {
