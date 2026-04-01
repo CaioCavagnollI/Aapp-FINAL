@@ -197,7 +197,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ error: "Usuário e senha obrigatórios" });
 
-    const adminUsername = process.env.ADMIN_USERNAME || "admin@nexus.atlas221177";
+    const adminUsername = process.env.ADMIN_USERNAME || "admin@nexus221177";
     const adminPassword = process.env.ADMIN_PASSWORD || "admin2211777_";
 
     if (username !== adminUsername || password !== adminPassword) {

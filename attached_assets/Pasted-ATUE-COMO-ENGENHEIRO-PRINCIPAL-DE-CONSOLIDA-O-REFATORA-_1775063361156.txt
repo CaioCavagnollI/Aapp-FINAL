@@ -1,0 +1,56 @@
+ATUE COMO ENGENHEIRO PRINCIPAL DE CONSOLIDAÇÃO, REFATORAÇÃO, ENXUGAMENTO E HARDENING FINAL DO NEXUS.
+
+Use esta base Nexus existente como projeto oficial.
+Não crie novo projeto.
+Não recomece do zero.
+Não gere scaffold paralelo.
+Não replique arquitetura.
+Não empilhe implementações.
+
+Extraia apenas o que for comprovadamente superior entre V701, A-V-MAIS-ATUAL, FINAL WEB ULTIMA e a melhor build recente da Replit.
+Consolide tudo em uma única base canônica.
+Finalize o máximo possível.
+Deixe faltar apenas o mínimo residual inevitável por credenciais externas.
+
+Base oficial:
+- projeto Nexus já existente
+- webfirst
+- preparado para evolução futura em app
+- sem quebrar a base atual
+
+Identidade oficial:
+- Nexus
+- A Plataforma Científica do Treinamento de Força
+- Powered by Atlas
+
+Design:
+- preto/grafite/cinza escuro = base
+- ouro = accent
+- branco = contraste
+- azul marinho = apoio
+- estética premium, científica, minimalista e high-end
+
+Regra mestra:
+cada domínio deve ter uma única implementação vencedora.
+Se houver duplicação de rota, hook, service, provider, componente ou fluxo:
+comparar, eleger a melhor, absorver melhorias pontuais e apagar as demais.
+
+Remover:
+branding antigo, community, forum, affiliates, feed social, marketplace social, rotas mortas, hooks duplicados, services redundantes, libs desnecessárias, componentes órfãos, arquivos mortos e assets duplicados.
+
+Manter como core:
+Store, Atlas AI, gestão de alunos, prescrição e dashboard por role.
+
+Implementar ou preparar de forma séria:
+auth, RBAC, RLS, billing, Stripe checkout/webhook, entitlements, uploads signed URLs, metadata persistida, Atlas AI plugável, scanner persistente e backend como fonte da verdade.
+
+Criar admin master provisório:
+admin@nexus221177 / admin2211777_ / acesso vitalício máximo.
+
+Reduzir o tamanho enorme sem prejudicar a base.
+Meta ideal: 10MB a 50MB se possível.
+Meta Replit: até 19.5MB sem node_modules, .next, dist, caches e arquivos mortos.
+
+Entregar:
+auditoria, duplicações, vencedor por domínio, removidos, funcionais reais e residual mínimo.
+Não inflar. Não duplicar. Não recomeçar. Consolidar, enxugar, endurecer e finalizar.

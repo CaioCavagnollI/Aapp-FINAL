@@ -90,9 +90,6 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <TabIcon name="person-circle-outline" color={color} />,
         }}
       />
-      <Tabs.Screen name="chat" options={{ href: null }} />
-      <Tabs.Screen name="programs" options={{ href: null }} />
-      <Tabs.Screen name="profile" options={{ href: null }} />
     </Tabs>
   );
 }

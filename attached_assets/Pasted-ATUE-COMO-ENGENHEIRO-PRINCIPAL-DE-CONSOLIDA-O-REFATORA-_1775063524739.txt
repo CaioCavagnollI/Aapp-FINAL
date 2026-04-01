@@ -1,0 +1,170 @@
+ATUE COMO ENGENHEIRO PRINCIPAL DE CONSOLIDAÇÃO, REFATORAÇÃO, ENXUGAMENTO E HARDENING FINAL DO PROJETO NEXUS.
+
+CONTEXTO:
+Use esta base Nexus existente como projeto oficial.
+NÃO crie novo projeto.
+NÃO recomece do zero.
+NÃO gere scaffold paralelo.
+NÃO replique arquitetura.
+NÃO empilhe implementações.
+
+OBJETIVO:
+Extrair apenas o que for comprovadamente superior entre:
+- V701
+- A-V-MAIS-ATUAL
+- FINAL WEB ULTIMA
+- melhor build recente da Replit
+
+Consolidar tudo em UMA única base canônica.
+Finalizar o máximo possível.
+Deixar faltar apenas o mínimo residual inevitável por credenciais externas.
+
+REGRA MESTRA:
+Para cada domínio, manter UMA única implementação vencedora.
+Se houver versões duplicadas de rota, hook, service, provider, componente ou fluxo:
+1. comparar
+2. eleger a melhor
+3. absorver melhorias pontuais
+4. apagar as demais
+
+NÃO preservar duplicação por segurança.
+NÃO manter versão antiga e nova coexistindo.
+NÃO inflar a base.
+
+BASE OFICIAL:
+- projeto Nexus já existente
+- webfirst
+- preparado para evolução futura em app
+- sem quebrar a base atual
+
+IDENTIDADE OFICIAL:
+Nome: Nexus
+Slogan: A Plataforma Científica do Treinamento de Força
+Subtítulo: Powered by Atlas
+
+DESIGN NEXUS:
+Estética premium, científica, minimalista, high-end.
+
+Paleta oficial:
+- preto / cinza escuro / grafite = base
+- ouro = accent principal
+- branco = contraste
+- azul marinho = apoio institucional/técnico
+
+REGRAS DE UI:
+- fundo escuro dominante
+- ouro usado com controle
+- sem poluição visual
+- sem cores aleatórias
+- sem visual genérico de template
+- tipografia moderna, técnica e limpa
+- cards, inputs, botões e dashboards consistentes com essa identidade
+
+REMOVER:
+- branding antigo
+- community
+- forum
+- affiliates
+- feed social
+- marketplace social
+- rotas mortas
+- hooks duplicados
+- services redundantes
+- libs desnecessárias
+- componentes órfãos
+- arquivos mortos
+- assets redundantes
+
+MANTER COMO CORE:
+- Store
+- Atlas AI
+- gestão de alunos
+- prescrição
+- dashboard por role
+
+IMPLEMENTAR OU PREPARAR DE FORMA SÉRIA:
+- auth real
+- RBAC real
+- RLS real
+- billing
+- Stripe checkout
+- Stripe webhook
+- persistência de assinatura e entitlements
+- uploads com signed URLs
+- metadata persistida
+- Atlas AI com provider plugável
+- scanner persistente com ingestão padronizada
+- dashboard por role
+- backend como fonte da verdade
+
+REGRAS DE SEGURANÇA E ENGENHARIA:
+- sem segredos hardcoded
+- sem autorização só no frontend
+- sem placeholder silencioso em fluxo crítico
+- todo stub deve ficar explicitamente marcado
+- toda rota crítica valida sessão
+- todo acesso admin valida role
+- toda persistência séria deve ir para banco/migrations
+- tratamento de erro obrigatório em fluxos críticos
+
+ADMIN MASTER PROVISÓRIO:
+Criar admin master provisório com:
+- login: admin@nexus221177
+- senha: admin2211777_
+- acesso vitalício máximo
+
+TAMANHO E ENXUGAMENTO:
+Reduzir o tamanho enorme do projeto SEM prejudicar a base.
+Meta ideal: arquivo final entre 10MB e 50MB se possível.
+Meta operacional para exportação na Replit: até 19.5MB sem:
+- node_modules
+- .next
+- dist
+- build artifacts
+- caches
+- arquivos mortos
+
+Se necessário:
+- remover dependências redundantes
+- consolidar módulos inchados
+- eliminar assets duplicados
+- reduzir documentação interna excessiva dentro do repositório
+- manter apenas o núcleo canônico funcional
+
+ORDEM DE EXECUÇÃO:
+1. auditar estrutura atual
+2. mapear duplicações
+3. eleger vencedores canônicos por domínio
+4. remover perdedores
+5. consolidar backend e banco
+6. fechar fluxos críticos reais
+7. reduzir tamanho
+8. validar build
+9. deixar a base limpa, enxuta, canônica e pronta para continuidade
+
+FORMATO DE ENTREGA:
+1. auditoria objetiva
+2. duplicações encontradas
+3. vencedor por domínio
+4. lista do que foi removido
+5. lista do que ficou realmente funcional
+6. lista do residual mínimo pendente por credenciais externas
+
+RESULTADO FINAL ESPERADO:
+- base única
+- base canônica
+- base enxuta
+- sem duplicações
+- sem branding antigo
+- sem módulos sociais
+- webfirst
+- design Nexus correto
+- build limpo
+- pronta para Replit
+- pronta para futura ida à Vercel
+- faltando apenas o mínimo residual inevitável
+
+NÃO INFLAR.
+NÃO DUPLICAR.
+NÃO RECOMEÇAR.
+CONSOLIDAR, ENXUGAR, ENDURECER E FINALIZAR.

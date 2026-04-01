@@ -1,128 +1,136 @@
-# Nexus — replit.md
+# Nexus — A Plataforma Científica do Treinamento de Força
 
-## Overview
+**Powered by Atlas**
 
-**Nexus** — *A Plataforma Científica do Treinamento de Força* — is a premium science-based strength training mobile app built with Expo (React Native) and an Express.js backend. The AI engine is branded **Atlas IA** (*Powered by Atlas*). All UI is in Brazilian Portuguese (PT-BR).
+## Identidade
+- **Nome**: Nexus
+- **Slogan**: A Plataforma Científica do Treinamento de Força
+- **Subtítulo**: Powered by Atlas
+- **IA**: Atlas IA
 
-The app is structured as a full-stack project running in a single Replit environment:
-- A **React Native / Expo** frontend using file-based routing via Expo Router
-- An **Express.js backend** serving as the API layer (auth, chat, file management, admin)
-- **OpenAI API** integration (via Replit AI Integrations) for Atlas IA streaming chat
+## Stack
+- **Frontend**: Expo (React Native) + Expo Router — arquivo base em `app/`
+- **Backend**: Express + TypeScript em `server/`
+- **Auth usuário**: JWT (30d), bcryptjs — rotas `/api/auth/*`
+- **Auth admin**: HMAC token via `/api/admin/login`
+- **Storage**: MemStorage em memória (`server/storage.ts`) — usuários reiniciam com o servidor
+- **Schema**: Drizzle ORM + Zod em `shared/schema.ts`
+- **Fontes**: Outfit (300–800) via `@expo-google-fonts/outfit`
 
----
-
-## Branding
-
-| Field | Value |
-|---|---|
-| App name | **Nexus** |
-| Slogan | A Plataforma Científica do Treinamento de Força |
-| Subtitle | Powered by Atlas |
-| AI engine | Atlas IA |
-| Language | PT-BR (Brazilian Portuguese) |
-| Colors | Gold `#D4AF37` / Black `#0B0B0C` |
-
----
-
-## User Preferences
-
-Preferred communication style: Simple, everyday language. PT-BR throughout.
-
----
-
-## Navigation — 7 Tabs
-
-| Tab | Screen | Route |
+## Design — Paleta Oficial
+| Token | Valor | Uso |
 |---|---|---|
-| Hoje | Dashboard diário | `app/(tabs)/index.tsx` |
-| Treino | Programas e sessões | `app/(tabs)/treino.tsx` |
-| Atlas | Atlas IA + Conteúdo científico | `app/(tabs)/atlas.tsx` |
-| Scanner | Scanner de códigos e nutrição | `app/(tabs)/scanner.tsx` |
-| Prescrever | Prescrições para clientes | `app/(tabs)/prescrever.tsx` |
-| Loja | Planos, programas, conteúdo | `app/(tabs)/loja.tsx` |
-| Perfil | Conta, configurações, admin | `app/(tabs)/perfil.tsx` |
+| `gold` | `#D4AF37` | Accent principal |
+| `goldDark` | `#A8892B` | Gradiente escuro |
+| `goldLight` | `#E8CC6A` | Destaque suave |
+| `black` | `#0B0B0C` | Fundo base |
+| `card` | `#111113` | Cards |
+| `cardElevated` | `#18181A` | Cards elevados |
+| `border` | `#232327` | Bordas |
+| `muted` | `#6B6B75` | Texto secundário |
+| `text` | `#FFFFFF` | Texto principal |
+| `textSecondary` | `#A1A1AA` | Texto de suporte |
+| `navy` | `#0F2044` | Apoio institucional/técnico |
+| `navyLight` | `#1B3460` | Apoio suave |
 
-Hidden (legacy, href:null): `chat`, `programs`, `profile`
+## Estrutura de Arquivos (Canônica)
 
----
+```
+app/
+  _layout.tsx              # Root layout — providers, fonts, AuthGuard
+  (tabs)/
+    _layout.tsx            # 7 abas: Hoje, Treino, Atlas, Scanner, Prescrever, Loja, Perfil
+    index.tsx              # Aba Hoje
+    treino.tsx             # Aba Treino — programas, exercícios, performance
+    atlas.tsx              # Aba Atlas — Atlas IA chat + conteúdo editorial
+    scanner.tsx            # Aba Scanner — 4 tipos de scan
+    prescrever.tsx         # Aba Prescrever — Nova, Clientes, Templates, Histórico
+    loja.tsx               # Aba Loja — Planos, Programas, Conteúdo, Ferramentas
+    perfil.tsx             # Aba Perfil — conta, preferências, admin, logout
+  (admin)/
+    _layout.tsx            # Admin layout
+    index.tsx              # Painel admin — upload/gerenciamento de arquivos
+    login.tsx              # Tela de login admin (username + password)
+  (auth)/
+    _layout.tsx            # Auth layout
+    index.tsx              # Login/registro de usuário
 
-## System Architecture
+contexts/
+  AuthContext.tsx          # JWT auth do usuário — login, register, logout
+  AdminContext.tsx         # Auth admin — auto-login na inicialização
 
-### Frontend (Expo / React Native)
+components/
+  ErrorBoundary.tsx        # Classe error boundary
+  ErrorFallback.tsx        # UI de fallback para erros
+  KeyboardAwareScrollViewCompat.tsx
 
-- **Framework**: Expo SDK ~54 with `expo-router` ~6 for file-based navigation
-- **Routing structure**:
-  - `app/(tabs)/` — 7-tab main navigation (Hoje, Treino, Atlas, Scanner, Prescrever, Loja, Perfil)
-  - `app/(auth)/` — Login/Register screen (`index.tsx`)
-  - `app/(admin)/` — Protected admin area: Login (`login`) and Panel (`index`)
-  - `app/_layout.tsx` — Root layout with AuthGuard + AdminProvider + AuthProvider
-- **Auth guard**: `components/AuthGuard.tsx` using `useSegments` + `useRouter` for route protection
-- **Fonts**: Outfit font family (300–800 weight) via `@expo-google-fonts/outfit`
-- **Animations**: `react-native-reanimated` + `expo-haptics` for haptic feedback
-- **State management**: TanStack React Query v5 for server state; React Context for auth/admin state
-- **Keyboard handling**: `react-native-keyboard-controller`
+constants/
+  colors.ts                # Paleta oficial Nexus
 
-### Backend (Express.js)
+lib/
+  query-client.ts          # React Query + fetcher + getApiUrl()
 
-- **Entry point**: `server/index.ts`
-- **Routes** (`server/routes.ts`):
-  - `POST /api/auth/register` — User registration (bcryptjs hashed password, JWT issued)
-  - `POST /api/auth/login` — User login → JWT (30d expiry)
-  - `GET /api/auth/me` — Validate JWT, return user info
-  - `POST /api/admin/login` — Admin auth. Default password: `admin2211777_`. Returns HMAC token.
-  - `POST /api/chat` — Streaming Atlas IA chat (OpenAI)
-  - `GET/POST/DELETE /api/admin/files` — Knowledge base file management (multer)
-- **Storage**: `server/storage.ts` — in-memory `MemStorage` for users
-- **File uploads**: `multer` v2 → `./uploads/` directory
+server/
+  index.ts                 # Servidor Express — CORS, body parsing, logging
+  routes.ts                # Todas as rotas API
+  storage.ts               # MemStorage — IStorage interface
+  templates/landing-page.html
 
-### Authentication & Authorization
+shared/
+  schema.ts                # Schema Drizzle — tabela users, types InsertUser/User
+```
 
-- **User auth**: JWT-based. `bcryptjs` for hashing. 30-day token expiry. Stored in `AsyncStorage` via `contexts/AuthContext.tsx`.
-- **Admin auth**: Password HMAC-SHA256 token. Default password: `admin2211777_`. Auto-login on app start (no manual login needed). Stored via `contexts/AdminContext.tsx`.
-- **Route protection**: `AuthGuard` component in root layout redirects unauthenticated users to `/(auth)`.
+## Credenciais Admin
+- **Login**: `admin@nexus221177`
+- **Senha**: `admin2211777_`
+- Auto-login na inicialização (AdminContext)
+- Overrideable por `ADMIN_USERNAME` / `ADMIN_PASSWORD` env vars
 
-### Admin Credentials
+## Portas
+- **Frontend (Expo)**: 8081
+- **Backend (Express)**: 5000
 
-| Field | Value |
+## Variáveis de Ambiente Relevantes
+| Variável | Uso |
 |---|---|
-| Login identifier | `admin@nexus.atlas221177` |
-| Password | `admin2211777_` |
-| Auto-login | Yes (AdminContext auto-logs in on startup) |
+| `AI_INTEGRATIONS_OPENAI_API_KEY` | OpenAI via integração Replit |
+| `AI_INTEGRATIONS_OPENAI_BASE_URL` | Base URL OpenAI |
+| `JWT_SECRET` | Secret JWT (fallback: `nexusatlas-jwt-secret`) |
+| `SESSION_SECRET` | Fallback p/ JWT e HMAC admin |
+| `ADMIN_USERNAME` | Override usuário admin |
+| `ADMIN_PASSWORD` | Override senha admin |
 
-### Plano Vitalício Nexus
+## API Routes
 
-- Featured in `app/(tabs)/loja.tsx` as the premium plan
-- Price: R$ 997 (or 12x R$ 97)
-- Includes: Atlas IA ilimitado, todos os programas, scanner avançado, prescrições ilimitadas
+### Auth
+- `POST /api/auth/register` — cria usuário
+- `POST /api/auth/login` — login usuário, retorna JWT
+- `GET /api/auth/me` — retorna usuário autenticado (Bearer token)
 
-### AI Integration
+### Chat
+- `POST /api/chat` — streaming SSE com Atlas IA
 
-- **Engine**: Atlas IA (powered by OpenAI via Replit AI Integrations)
-- **System prompt**: Portuguese-language prompt defining the AI as Nexus platform's Atlas IA — specialized strength training science assistant
-- **Chat flow**: Streaming SSE via `/api/chat`; decoded on frontend with `expo/fetch`
+### Admin (requer x-admin-token)
+- `POST /api/admin/login` — autentica admin, retorna token HMAC
+- `GET /api/admin/files` — lista arquivos em `/uploads`
+- `POST /api/admin/upload` — upload de arquivo (multer, max 50MB)
+- `DELETE /api/admin/files/:filename` — exclui arquivo
 
-### Design System
+## AsyncStorage Keys
+- `nexusatlas_auth_token` — JWT do usuário
+- `nexusatlas_auth_user` — objeto User serializado
+- `nexusatlas_admin_token` — token HMAC do admin
 
-- **Theme**: Dark only (`userInterfaceStyle: "dark"`)
-- **Primary accent**: Gold `#D4AF37` / Dark Gold `#A8892B`
-- **Background**: `#0B0B0C`
-- **Cards**: `#111113` / `#18181A`
-- **Border**: `#232327`
-- **Muted**: `#6B6B75`
-- **Gradients**: `expo-linear-gradient` throughout
-- **Font**: Outfit (300/400/500/600/700/800)
+## O que foi removido (consolidação)
+- `app/(tabs)/chat.tsx` — duplicata do chat do atlas.tsx
+- `app/(tabs)/programs.tsx` — aba antiga de programas
+- `app/(tabs)/profile.tsx` — aba antiga de perfil (substituída por perfil.tsx)
+- `server/replit_integrations/` — audio, batch, chat, image — código morto não registrado
 
----
-
-## Environment Variables
-
-| Variable | Purpose |
-|---|---|
-| `AI_INTEGRATIONS_OPENAI_API_KEY` | OpenAI API key (Replit AI Integration) |
-| `AI_INTEGRATIONS_OPENAI_BASE_URL` | OpenAI-compatible base URL |
-| `ADMIN_PASSWORD` | Admin password override (default: `admin2211777_`) |
-| `SESSION_SECRET` | HMAC signing secret for admin tokens |
-| `JWT_SECRET` | JWT signing secret for user auth |
-| `EXPO_PUBLIC_DOMAIN` | Public domain for API URL resolution |
-| `REPLIT_DEV_DOMAIN` | Replit dev domain (auto-set) |
-| `REPLIT_DOMAINS` | Replit production domains (auto-set) |
+## Residual Pendente
+- **Stripe/billing**: integração de pagamento não implementada — botões de compra são visuais
+- **Banco de dados real**: MemStorage não persiste entre reinicios
+- **RLS/RBAC completo**: auth só no backend básico, sem row-level security
+- **Scanner real**: leitura de código de barras ainda não implementada
+- **Prescrições persistidas**: dados de clientes/templates são mock
+- **Signed URLs para uploads**: upload admin é local sem CDN
