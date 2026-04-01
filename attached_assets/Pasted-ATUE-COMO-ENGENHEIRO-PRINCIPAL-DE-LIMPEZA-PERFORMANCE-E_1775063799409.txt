@@ -1,0 +1,79 @@
+ATUE COMO ENGENHEIRO PRINCIPAL DE LIMPEZA, PERFORMANCE E ENTREGA FINAL.
+
+USE ESTE PROJETO ATUAL COMO BASE.
+NÃO recrie do zero.
+NÃO gere páginas novas sem necessidade.
+NÃO preserve duplicações.
+NÃO infle a arquitetura.
+
+OBJETIVO:
+Deixar o projeto o mais enxuto, rápido, funcional e pronto para deploy possível.
+
+AÇÃO IMEDIATA:
+1. Auditar todo o projeto.
+2. Remover páginas inúteis, vazias, duplicadas, órfãs, mockadas, “coming soon”, testes expostos e fluxos sem valor real.
+3. Remover componentes mortos, hooks redundantes, providers desnecessários, libs pesadas sem uso real, assets inúteis e código legado.
+4. Consolidar tudo em uma única implementação vencedora por rota, módulo e fluxo.
+5. Corrigir imports quebrados, referências mortas e inconsistências após a limpeza.
+6. Validar navegação principal, build e funcionamento final.
+
+LOGOS E BRANDING:
+- importar imediatamente as logos anexadas
+- substituir branding antigo pelo branding correto
+- aplicar logo principal no header, auth, dashboard, página pública e metadados principais
+- usar favicon/app icon a partir dos anexos, se houver arquivo compatível
+- remover logos antigas, duplicadas ou não utilizadas
+- manter identidade visual consistente e leve
+
+REGRAS:
+- se não tem utilidade real, remover
+- se está duplicado, consolidar
+- se está pesado, simplificar
+- se existe alternativa nativa mais leve, substituir
+- manter apenas o núcleo forte do produto
+
+MANTER SOMENTE O QUE FOR REALMENTE ÚTIL:
+- login/cadastro
+- dashboard por role
+- clientes
+- anamnese
+- prescrição
+- treinos
+- biblioteca científica
+- planos/cobrança
+- perfil/configurações
+- admin
+- loja, apenas se operacional
+- scanner, apenas se integrado e funcional
+
+CHECKLIST ATUAL:
+[ ] rotas auditadas
+[ ] páginas inúteis identificadas
+[ ] duplicações identificadas
+[ ] libs pesadas identificadas
+[ ] código morto identificado
+[ ] logos anexadas importadas
+[ ] branding antigo localizado
+
+CHECKLIST FINAL:
+[ ] sem páginas inúteis
+[ ] sem duplicações
+[ ] sem código morto
+[ ] sem libs sem uso
+[ ] sem logos antigas sobrando
+[ ] logos anexadas aplicadas corretamente
+[ ] branding consistente
+[ ] build funcionando
+[ ] navegação principal funcionando
+[ ] pronto para deploy
+
+ENTREGA FINAL OBRIGATÓRIA:
+1. lista do que foi removido
+2. lista do que foi consolidado
+3. lista do que foi simplificado
+4. páginas finais mantidas
+5. dependências removidas
+6. onde as logos anexadas foram aplicadas
+7. pendências reais restantes
+8. nota final do projeto
+9. status de deploy

@@ -14,7 +14,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
 import * as DocumentPicker from "expo-document-picker";
-import { File } from "expo-file-system";
 import { fetch } from "expo/fetch";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
@@ -154,8 +153,11 @@ export default function AdminIndexScreen() {
       setUploadProgress(`Enviando "${asset.name}"...`);
 
       const formData = new FormData();
-      const file = new File(asset.uri, asset.name, { type: asset.mimeType || "application/octet-stream" });
-      formData.append("file", file as any);
+      formData.append("file", {
+        uri: asset.uri,
+        name: asset.name,
+        type: asset.mimeType || "application/octet-stream",
+      } as any);
 
       const res = await fetch(`${baseUrl}api/admin/upload`, {
         method: "POST",
