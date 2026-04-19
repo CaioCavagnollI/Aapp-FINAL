@@ -12,10 +12,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import Animated, {
-  FadeInDown,
-  FadeIn,
-} from "react-native-reanimated";
+import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Colors from "@/constants/colors";
@@ -91,7 +88,10 @@ export default function AuthScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Animated.View entering={FadeIn.duration(600)} style={styles.logoArea}>
+          <Animated.View
+            entering={FadeIn.duration(600)}
+            style={styles.logoArea}
+          >
             <LinearGradient
               colors={[Colors.goldDark, Colors.gold]}
               style={styles.logoBox}
@@ -99,17 +99,27 @@ export default function AuthScreen() {
               <Ionicons name="flask" size={32} color={Colors.black} />
             </LinearGradient>
             <Text style={styles.appName}>Nexus</Text>
-            <Text style={styles.appTagline}>A Plataforma Científica do Treinamento de Força</Text>
+            <Text style={styles.appTagline}>
+              A Plataforma Científica do Treinamento de Força
+            </Text>
             <Text style={styles.appPowered}>Powered by Atlas</Text>
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(150).springify()} style={styles.card}>
+          <Animated.View
+            entering={FadeInDown.delay(150).springify()}
+            style={styles.card}
+          >
             <View style={styles.tabRow}>
               <Pressable
                 onPress={() => switchMode("login")}
                 style={[styles.tab, mode === "login" && styles.tabActive]}
               >
-                <Text style={[styles.tabText, mode === "login" && styles.tabTextActive]}>
+                <Text
+                  style={[
+                    styles.tabText,
+                    mode === "login" && styles.tabTextActive,
+                  ]}
+                >
                   Entrar
                 </Text>
               </Pressable>
@@ -117,7 +127,12 @@ export default function AuthScreen() {
                 onPress={() => switchMode("register")}
                 style={[styles.tab, mode === "register" && styles.tabActive]}
               >
-                <Text style={[styles.tabText, mode === "register" && styles.tabTextActive]}>
+                <Text
+                  style={[
+                    styles.tabText,
+                    mode === "register" && styles.tabTextActive,
+                  ]}
+                >
                   Criar Conta
                 </Text>
               </Pressable>
@@ -126,7 +141,12 @@ export default function AuthScreen() {
             <Animated.View entering={FadeInDown.delay(220).springify()}>
               <Text style={styles.label}>Usuário</Text>
               <View style={styles.inputWrapper}>
-                <Ionicons name="person-outline" size={18} color={Colors.muted} style={styles.inputIcon} />
+                <Ionicons
+                  name="person-outline"
+                  size={18}
+                  color={Colors.muted}
+                  style={styles.inputIcon}
+                />
                 <TextInput
                   style={styles.input}
                   placeholder="Seu nome de usuário"
@@ -144,7 +164,12 @@ export default function AuthScreen() {
             <Animated.View entering={FadeInDown.delay(280).springify()}>
               <Text style={styles.label}>Senha</Text>
               <View style={styles.inputWrapper}>
-                <Ionicons name="lock-closed-outline" size={18} color={Colors.muted} style={styles.inputIcon} />
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={18}
+                  color={Colors.muted}
+                  style={styles.inputIcon}
+                />
                 <TextInput
                   ref={passwordRef}
                   style={[styles.input, styles.inputWithAction]}
@@ -156,7 +181,9 @@ export default function AuthScreen() {
                   autoCapitalize="none"
                   returnKeyType={mode === "register" ? "next" : "done"}
                   onSubmitEditing={() =>
-                    mode === "register" ? confirmRef.current?.focus() : handleSubmit()
+                    mode === "register"
+                      ? confirmRef.current?.focus()
+                      : handleSubmit()
                   }
                 />
                 <Pressable
@@ -176,7 +203,12 @@ export default function AuthScreen() {
               <Animated.View entering={FadeInDown.delay(320).springify()}>
                 <Text style={styles.label}>Confirmar Senha</Text>
                 <View style={styles.inputWrapper}>
-                  <Ionicons name="lock-closed-outline" size={18} color={Colors.muted} style={styles.inputIcon} />
+                  <Ionicons
+                    name="lock-closed-outline"
+                    size={18}
+                    color={Colors.muted}
+                    style={styles.inputIcon}
+                  />
                   <TextInput
                     ref={confirmRef}
                     style={styles.input}
@@ -194,8 +226,15 @@ export default function AuthScreen() {
             )}
 
             {error !== "" && (
-              <Animated.View entering={FadeInDown.springify()} style={styles.errorBox}>
-                <Ionicons name="alert-circle-outline" size={15} color="#FF6B6B" />
+              <Animated.View
+                entering={FadeInDown.springify()}
+                style={styles.errorBox}
+              >
+                <Ionicons
+                  name="alert-circle-outline"
+                  size={15}
+                  color="#FF6B6B"
+                />
                 <Text style={styles.errorText}>{error}</Text>
               </Animated.View>
             )}
@@ -204,7 +243,10 @@ export default function AuthScreen() {
               <Pressable
                 onPress={handleSubmit}
                 disabled={loading}
-                style={({ pressed }) => [styles.submitBtn, { opacity: pressed ? 0.85 : 1 }]}
+                style={({ pressed }) => [
+                  styles.submitBtn,
+                  { opacity: pressed ? 0.85 : 1 },
+                ]}
               >
                 <LinearGradient
                   colors={[Colors.goldDark, Colors.gold]}
@@ -231,10 +273,19 @@ export default function AuthScreen() {
             </Animated.View>
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(450).springify()} style={styles.footer}>
+          <Animated.View
+            entering={FadeInDown.delay(450).springify()}
+            style={styles.footer}
+          >
             <View style={styles.footerBadge}>
-              <Ionicons name="shield-checkmark-outline" size={12} color={Colors.gold} />
-              <Text style={styles.footerText}>Seus dados são protegidos e criptografados</Text>
+              <Ionicons
+                name="shield-checkmark-outline"
+                size={12}
+                color={Colors.gold}
+              />
+              <Text style={styles.footerText}>
+                Seus dados são protegidos e criptografados
+              </Text>
             </View>
           </Animated.View>
         </ScrollView>
