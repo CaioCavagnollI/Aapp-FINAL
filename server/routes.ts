@@ -14,7 +14,11 @@ const openai = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
 
-const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || "nexusatlas-jwt-secret";
+const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET;
+if (!JWT_SECRET) {
+  console.warn("[WARN] JWT_SECRET not set in env. Using insecure fallback for development only.");
+}
+const JWT_SECRET_FINAL = JWT_SECRET || "nexusatlas-jwt-secret-dev-only";
 
 const SYSTEM_PROMPT = `Você é o Atlas IA da plataforma Nexus — A Plataforma Científica do Treinamento de Força. Você é um assistente especializado em treinamento de força científico, com profundo conhecimento em fisiologia do exercício, biomecânica e programação baseada em evidências.
 
@@ -79,7 +83,7 @@ function authMiddleware(req: AuthRequest, res: Response, next: Function) {
   }
   const token = authHeader.slice(7);
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as { userId: string; plan?: string; isAdmin?: boolean };
+    const payload = jwt.verify(token, JWT_SECRET_FINAL) as { userId: string; plan?: string; isAdmin?: boolean };
     req.userId = payload.userId;
     req.userPlan = payload.plan;
     req.isAdmin = payload.isAdmin;
@@ -119,7 +123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (existing) return res.status(409).json({ error: "Usuário já existe" });
       const hashedPassword = await bcrypt.hash(password, 10);
       const user = await storage.createUser({ username, password: hashedPassword });
-      const token = jwt.sign({ userId: user.id, plan: user.plan, isAdmin: user.is_admin }, JWT_SECRET, { expiresIn: "30d" });
+      const token = jwt.sign({ userId: user.id, plan: user.plan, isAdmin: user.is_admin }, JWT_SECRET_FINAL, { expiresIn: "30d" });
       res.status(201).json({ token, user: { id: user.id, username: user.username, plan: user.plan, is_admin: user.is_admin } });
     } catch (error) {
       console.error("Register error:", error);
@@ -135,7 +139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) return res.status(401).json({ error: "Usuário ou senha incorretos" });
       const valid = await bcrypt.compare(password, user.password);
       if (!valid) return res.status(401).json({ error: "Usuário ou senha incorretos" });
-      const token = jwt.sign({ userId: user.id, plan: user.plan, isAdmin: user.is_admin }, JWT_SECRET, { expiresIn: "30d" });
+      const token = jwt.sign({ userId: user.id, plan: user.plan, isAdmin: user.is_admin }, JWT_SECRET_FINAL, { expiresIn: "30d" });
       res.json({ token, user: { id: user.id, username: user.username, plan: user.plan, is_admin: user.is_admin } });
     } catch (error) {
       console.error("Login error:", error);
@@ -451,7 +455,7 @@ ${notes ? `- Observações: ${notes}` : ""}`;
       await storage.updateUserPlan(adminUser.id, "vitalicio");
     }
 
-    const userToken = jwt.sign({ userId: adminUser.id, plan: "vitalicio", isAdmin: true }, JWT_SECRET, { expiresIn: "30d" });
+    const userToken = jwt.sign({ userId: adminUser.id, plan: "vitalicio", isAdmin: true }, JWT_SECRET_FINAL, { expiresIn: "30d" });
     const adminToken = getAdminToken();
     res.json({ token: adminToken, userToken, user: { id: adminUser.id, username: adminUser.username, plan: "vitalicio", is_admin: true } });
   });

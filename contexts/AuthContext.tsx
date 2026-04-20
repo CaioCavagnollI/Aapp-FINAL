@@ -26,6 +26,7 @@ interface AuthContextValue {
   isLoading: boolean;
   isLoggedIn: boolean;
   isPro: boolean;
+  isStarter: boolean;
   isVitalicio: boolean;
   login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
@@ -124,11 +125,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const isStarter = user?.plan === "starter_monthly" || user?.plan === "starter_annual" || user?.plan === "pro_monthly" || user?.plan === "pro_annual" || user?.plan === "vitalicio" || user?.is_admin === true;
   const isPro = user?.plan === "pro_monthly" || user?.plan === "pro_annual" || user?.plan === "vitalicio" || user?.is_admin === true;
   const isVitalicio = user?.plan === "vitalicio" || user?.is_admin === true;
 
   const value = useMemo(
-    () => ({ user, token, isLoading, isLoggedIn: !!token, isPro, isVitalicio, login, register, logout, setUserFromAdmin, refreshUser }),
+    () => ({ user, token, isLoading, isLoggedIn: !!token, isPro, isStarter, isVitalicio, login, register, logout, setUserFromAdmin, refreshUser }),
     [user, token, isLoading],
   );
 

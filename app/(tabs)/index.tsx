@@ -6,6 +6,8 @@ import {
   ScrollView,
   Pressable,
   Platform,
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -13,8 +15,10 @@ import { Ionicons } from "@expo/vector-icons";
 import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
+import { useQuery } from "@tanstack/react-query";
 import Colors from "@/constants/colors";
 import { useAuth } from "@/contexts/AuthContext";
+import { getApiUrl } from "@/lib/query-client";
 
 const INSIGHTS = [
   { icon: "flash-outline", title: "Sobrecarga Progressiva", subtitle: "Aumente 2,5kg por semana em exercícios principais", tag: "Princípio" },
@@ -29,17 +33,31 @@ const QUICK_ACTIONS = [
   { icon: "barbell-outline", label: "Treino", route: "/(tabs)/treino", color: "#F472B6" },
 ];
 
-const STATS = [
-  { label: "Treinos", value: "0", sub: "este mês", icon: "barbell-outline" },
-  { label: "Volume", value: "0t", sub: "total", icon: "trending-up-outline" },
-  { label: "Sequência", value: "0d", sub: "seguidos", icon: "flame-outline" },
-  { label: "Prescrições", value: "0", sub: "ativas", icon: "document-text-outline" },
-];
+interface Stats {
+  sessions_this_month: number;
+  total_volume_kg: number;
+  streak_days: number;
+  active_prescriptions: number;
+}
 
 export default function HojeScreen() {
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
+
+  const { data: stats, isLoading: statsLoading, refetch } = useQuery<Stats>({
+    queryKey: ["/api/stats"],
+    queryFn: async () => {
+      const baseUrl = getApiUrl();
+      const res = await fetch(`${baseUrl}api/stats`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Falha ao carregar estatísticas");
+      return res.json();
+    },
+    enabled: !!token,
+    staleTime: 30000,
+  });
 
   const getGreeting = () => {
     const h = new Date().getHours();
@@ -50,10 +68,23 @@ export default function HojeScreen() {
 
   const today = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
 
+  const formatVolume = (kg: number) => {
+    if (kg >= 1000) return `${(kg / 1000).toFixed(1)}t`;
+    return `${kg}kg`;
+  };
+
+  const statsItems = [
+    { label: "Treinos", value: statsLoading ? "—" : String(stats?.sessions_this_month ?? 0), sub: "este mês", icon: "barbell-outline" },
+    { label: "Volume", value: statsLoading ? "—" : formatVolume(stats?.total_volume_kg ?? 0), sub: "total", icon: "trending-up-outline" },
+    { label: "Sequência", value: statsLoading ? "—" : `${stats?.streak_days ?? 0}d`, sub: "seguidos", icon: "flame-outline" },
+    { label: "Prescrições", value: statsLoading ? "—" : String(stats?.active_prescriptions ?? 0), sub: "ativas", icon: "document-text-outline" },
+  ];
+
   return (
     <View style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={refetch} tintColor={Colors.gold} />}
         contentContainerStyle={[styles.content, { paddingTop: topPad + 12, paddingBottom: Platform.OS === "web" ? 120 : 100 }]}
       >
         <Animated.View entering={FadeIn.duration(500)} style={styles.header}>
@@ -69,10 +100,14 @@ export default function HojeScreen() {
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(80).springify()} style={styles.statsRow}>
-          {STATS.map((s) => (
+          {statsItems.map((s) => (
             <View key={s.label} style={styles.statCard}>
               <Ionicons name={s.icon as any} size={16} color={Colors.gold} style={{ marginBottom: 6 }} />
-              <Text style={styles.statValue}>{s.value}</Text>
+              {statsLoading ? (
+                <ActivityIndicator size="small" color={Colors.gold} style={{ marginBottom: 4 }} />
+              ) : (
+                <Text style={styles.statValue}>{s.value}</Text>
+              )}
               <Text style={styles.statLabel}>{s.label}</Text>
               <Text style={styles.statSub}>{s.sub}</Text>
             </View>
@@ -102,11 +137,15 @@ export default function HojeScreen() {
           <LinearGradient colors={["#1A1A1C", "#111113"]} style={styles.sessionCard}>
             <View style={styles.sessionHeader}>
               <View>
-                <Text style={styles.sessionTitle}>Nenhum treino programado</Text>
-                <Text style={styles.sessionSub}>Crie ou selecione um programa de treino</Text>
+                <Text style={styles.sessionTitle}>
+                  {(stats?.sessions_this_month ?? 0) > 0 ? `${stats!.sessions_this_month} treino(s) este mês` : "Nenhum treino programado"}
+                </Text>
+                <Text style={styles.sessionSub}>
+                  {(stats?.streak_days ?? 0) > 0 ? `${stats!.streak_days} dia(s) de sequência ativo` : "Crie ou selecione um programa de treino"}
+                </Text>
               </View>
               <View style={styles.sessionIconBox}>
-                <Ionicons name="barbell-outline" size={22} color={Colors.muted} />
+                <Ionicons name="barbell-outline" size={22} color={(stats?.sessions_this_month ?? 0) > 0 ? Colors.gold : Colors.muted} />
               </View>
             </View>
             <Pressable
@@ -161,7 +200,10 @@ export default function HojeScreen() {
               </View>
             </View>
             <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push("/(tabs)/loja"); }}>
-              <Text style={styles.nexusCta}>Explorar →</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                <Text style={styles.nexusCta}>Explorar</Text>
+                <Ionicons name="arrow-forward" size={13} color={Colors.gold} />
+              </View>
             </Pressable>
           </LinearGradient>
         </Animated.View>

@@ -6,7 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import Colors from "@/constants/colors";
 
 function TabIcon({ name, color }: { name: string; color: string }) {
-  return <Ionicons name={name as any} size={22} color={color} />;
+  return <Ionicons name={name as any} size={26} color={color} />;
 }
 
 export default function TabLayout() {
@@ -25,13 +25,14 @@ export default function TabLayout() {
           borderTopWidth: 1,
           borderTopColor: Colors.border,
           elevation: 0,
-          height: isWeb ? 94 : 72,
-          paddingBottom: isWeb ? 24 : 12,
+          height: isWeb ? 88 : 64,
+          paddingBottom: isWeb ? 18 : 6,
+          paddingTop: 6,
         },
         tabBarLabelStyle: {
           fontFamily: "Outfit_500Medium",
           fontSize: 10,
-          marginTop: -2,
+          marginTop: 0,
         },
         tabBarBackground: () =>
           isIOS ? (

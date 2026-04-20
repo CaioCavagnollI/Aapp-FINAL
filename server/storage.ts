@@ -189,12 +189,27 @@ export async function getUserStats(userId: string) {
   const prescriptionsR = await pool.query(
     "SELECT COUNT(*) as count FROM prescriptions WHERE trainer_id = $1 AND status = 'Ativo'", [userId]
   );
+  const recentR = await pool.query(
+    "SELECT created_at FROM sessions WHERE user_id = $1 ORDER BY created_at DESC LIMIT 30",
+    [userId]
+  );
+  let streak = 0;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const days = new Set(recentR.rows.map((r: {created_at: Date}) => {
+    const d = new Date(r.created_at); d.setHours(0,0,0,0); return d.getTime();
+  }));
+  for (let i = 0; i < 30; i++) {
+    const d = new Date(today); d.setDate(d.getDate() - i);
+    if (days.has(d.getTime())) streak++;
+    else if (i > 0) break;
+  }
   return {
     sessions_this_month: parseInt(sessionsR.rows[0].count),
     total_sessions: parseInt(totalSessions.rows[0].count),
-    volume_kg: parseFloat(volumeR.rows[0].volume),
+    total_volume_kg: parseFloat(volumeR.rows[0].volume),
     active_clients: parseInt(clientsR.rows[0].count),
     active_prescriptions: parseInt(prescriptionsR.rows[0].count),
+    streak_days: streak,
   };
 }
 
