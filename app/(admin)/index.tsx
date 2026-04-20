@@ -227,7 +227,35 @@ export default function AdminIndexScreen() {
           </Pressable>
         </Animated.View>
 
+        {/* Quick Navigation */}
         <Animated.View entering={FadeInDown.delay(80).springify()}>
+          <Text style={styles.navSectionTitle}>Gerenciamento</Text>
+          <View style={styles.navGrid}>
+            {[
+              { label: "Usuários", icon: "people-outline", color: "#60A5FA", route: "/(admin)/usuarios" as const },
+              { label: "Moderação Loja", icon: "storefront-outline", color: "#F472B6", route: "/(admin)/loja-mod" as const },
+              { label: "Integrações", icon: "extension-puzzle-outline", color: "#A78BFA", route: "/(admin)/integracoes" as const },
+              { label: "Upload Arquivos", icon: "cloud-upload-outline", color: Colors.gold, route: null as any },
+            ].map((item) => (
+              <Pressable
+                key={item.label}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  if (item.route) { router.push(item.route); } else { handleUpload(); }
+                }}
+                style={({ pressed }) => [styles.navCard, { opacity: pressed ? 0.85 : 1 }]}
+              >
+                <View style={[styles.navIcon, { backgroundColor: `${item.color}15`, borderColor: `${item.color}25` }]}>
+                  <Ionicons name={item.icon as any} size={22} color={item.color} />
+                </View>
+                <Text style={styles.navLabel}>{item.label}</Text>
+                <Ionicons name="chevron-forward" size={12} color={Colors.muted} />
+              </Pressable>
+            ))}
+          </View>
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(120).springify()}>
           <Pressable
             onPress={handleUpload}
             disabled={isUploading}
@@ -254,7 +282,7 @@ export default function AdminIndexScreen() {
           </Pressable>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(140).springify()}>
+        <Animated.View entering={FadeInDown.delay(180).springify()}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Arquivos Enviados</Text>
             <Pressable onPress={() => refetch()} style={styles.refreshBtn}>
@@ -418,6 +446,41 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit_500Medium",
     fontSize: 14,
     color: Colors.gold,
+  },
+  navSectionTitle: {
+    fontFamily: "Outfit_700Bold",
+    fontSize: 16,
+    color: Colors.text,
+    marginBottom: 12,
+    marginTop: 4,
+  },
+  navGrid: {
+    gap: 8,
+    marginBottom: 28,
+  },
+  navCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.card,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    gap: 12,
+  },
+  navIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+  },
+  navLabel: {
+    fontFamily: "Outfit_600SemiBold",
+    fontSize: 14,
+    color: Colors.text,
+    flex: 1,
   },
   fileList: {
     gap: 10,

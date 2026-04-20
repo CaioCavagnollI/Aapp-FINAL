@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "aYItAUtKmVQ2bE_7GUQvf"
+uri = "file://nexus-source-code.tar.gz"
+type = "unspecified"
+title = "Nexus App — Código-Fonte Completo (.tar.gz)"

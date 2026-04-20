@@ -417,10 +417,10 @@ ${notes ? `- Observações: ${notes}` : ""}`;
           model: "gpt-4.1",
           messages: [{
             role: "system",
-            content: "Você é um especialista em nutrição esportiva. Dado um código de barras ou texto de rótulo nutricional, forneça informações nutricionais estruturadas em JSON com campos: nome, calorias_por_100g, proteina_g, carboidratos_g, gorduras_g, porcao_recomendada, observacoes_esportivas. Se não reconhecer o produto, estime com base no código ou descrição."
+            content: "Você é um especialista em nutrição esportiva. Responda SEMPRE em português do Brasil. Dado um código de barras ou texto de rótulo nutricional, forneça informações nutricionais estruturadas em JSON com campos: nome, calorias_por_100g, proteina_g, carboidratos_g, gorduras_g, porcao_recomendada, observacoes_esportivas. Se não reconhecer o produto, estime com base no código ou descrição. Todos os textos do JSON devem estar em português do Brasil."
           }, {
             role: "user",
-            content: `Tipo: ${type || "barcode"}. Dados: ${raw_data}. Responda APENAS com JSON válido.`
+            content: `Tipo: ${type || "barcode"}. Dados: ${raw_data}. Responda APENAS com JSON válido em português do Brasil.`
           }],
           max_completion_tokens: 500,
         });
@@ -446,18 +446,174 @@ ${notes ? `- Observações: ${notes}` : ""}`;
       return res.status(401).json({ error: "Credenciais inválidas" });
     }
 
-    // Ensure admin user exists in DB
+    // Ensure admin user exists in DB with vitalicio plan
     let adminUser = await storage.getUserByUsername(adminUsername);
     if (!adminUser) {
       const hashed = await bcrypt.hash(adminPassword, 10);
       adminUser = await storage.createUser({ username: adminUsername, password: hashed, is_admin: true });
-    } else if (!adminUser.is_admin) {
-      await storage.updateUserPlan(adminUser.id, "vitalicio");
     }
+    // Always ensure admin has vitalicio plan
+    await storage.updateUserPlan(adminUser.id, "vitalicio");
 
     const userToken = jwt.sign({ userId: adminUser.id, plan: "vitalicio", isAdmin: true }, JWT_SECRET_FINAL, { expiresIn: "30d" });
     const adminToken = getAdminToken();
     res.json({ token: adminToken, userToken, user: { id: adminUser.id, username: adminUser.username, plan: "vitalicio", is_admin: true } });
+  });
+
+  // ===== ADMIN USERS MANAGEMENT =====
+
+  app.get("/api/admin/users", adminMiddleware, async (_req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json({ users });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao buscar usuários" });
+    }
+  });
+
+  app.put("/api/admin/users/:id/plan", adminMiddleware, async (req, res) => {
+    try {
+      const { plan } = req.body;
+      const validPlans = ["free", "starter_monthly", "starter_annual", "pro_monthly", "pro_annual", "vitalicio"];
+      if (!validPlans.includes(plan)) return res.status(400).json({ error: "Plano inválido" });
+      const user = await storage.updateUserPlan(req.params.id, plan);
+      res.json({ user });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao atualizar plano" });
+    }
+  });
+
+  app.delete("/api/admin/users/:id", adminMiddleware, async (req, res) => {
+    try {
+      await storage.deleteUser(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao excluir usuário" });
+    }
+  });
+
+  app.get("/api/admin/metrics", adminMiddleware, async (_req, res) => {
+    try {
+      const metrics = await storage.getAppMetrics();
+      res.json(metrics);
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao buscar métricas" });
+    }
+  });
+
+  // ===== STORE PRODUCTS =====
+
+  app.get("/api/store/products", async (_req, res) => {
+    try {
+      const products = await storage.getStoreProducts();
+      res.json({ products });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao buscar produtos" });
+    }
+  });
+
+  app.post("/api/store/products", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { name, description, price, category, file_url, contact } = req.body;
+      if (!name || !price || !category) return res.status(400).json({ error: "Nome, preço e categoria são obrigatórios" });
+      const product = await storage.createStoreProduct({
+        seller_id: req.userId!, name, description, price, category, file_url, contact, status: "pending"
+      });
+      res.status(201).json({ product });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao criar produto" });
+    }
+  });
+
+  app.get("/api/admin/store/products", adminMiddleware, async (_req, res) => {
+    try {
+      const products = await storage.getAllStoreProducts();
+      res.json({ products });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao buscar produtos" });
+    }
+  });
+
+  app.put("/api/admin/store/products/:id/approve", adminMiddleware, async (req, res) => {
+    try {
+      const product = await storage.approveStoreProduct(req.params.id);
+      res.json({ product });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao aprovar produto" });
+    }
+  });
+
+  app.delete("/api/admin/store/products/:id", adminMiddleware, async (req, res) => {
+    try {
+      await storage.deleteStoreProduct(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao excluir produto" });
+    }
+  });
+
+  // ===== TRAINER PROFILES (Prescrição Premium) =====
+
+  app.get("/api/trainer-profiles", async (_req, res) => {
+    try {
+      const profiles = await storage.getTrainerProfiles();
+      res.json({ profiles });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao buscar perfis" });
+    }
+  });
+
+  app.post("/api/trainer-profiles", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { name, bio, specialties, experience_years, price_per_month, contact, avatar_url } = req.body;
+      if (!name || !bio) return res.status(400).json({ error: "Nome e bio são obrigatórios" });
+      const profile = await storage.upsertTrainerProfile({
+        user_id: req.userId!, name, bio, specialties, experience_years, price_per_month, contact, avatar_url
+      });
+      res.json({ profile });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao salvar perfil" });
+    }
+  });
+
+  // ===== EXERCISES LIBRARY =====
+
+  app.get("/api/exercises", async (_req, res) => {
+    try {
+      const exercises = await storage.getExercises();
+      res.json({ exercises });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao buscar exercícios" });
+    }
+  });
+
+  app.post("/api/admin/exercises", adminMiddleware, async (req, res) => {
+    try {
+      const exercise = await storage.createExercise(req.body);
+      res.status(201).json({ exercise });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao criar exercício" });
+    }
+  });
+
+  // ===== ATLAS SCANNER LIBRARY =====
+
+  app.get("/api/atlas-library", async (_req, res) => {
+    try {
+      const entries = await storage.getAtlasLibrary();
+      res.json({ entries });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao buscar biblioteca" });
+    }
+  });
+
+  app.post("/api/admin/atlas-library", adminMiddleware, async (req, res) => {
+    try {
+      const entry = await storage.createAtlasLibraryEntry(req.body);
+      res.status(201).json({ entry });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao criar entrada na biblioteca" });
+    }
   });
 
   app.get("/api/admin/files", adminMiddleware, (_req, res) => {

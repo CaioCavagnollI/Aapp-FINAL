@@ -21,15 +21,17 @@ import Colors from "@/constants/colors";
 import { useAuth } from "@/contexts/AuthContext";
 import { getApiUrl } from "@/lib/query-client";
 
-type Aba = "Nova" | "Clientes" | "Historico";
+type Aba = "Nova" | "Clientes" | "Historico" | "Premium";
 const ABAS: { key: Aba; label: string }[] = [
   { key: "Nova", label: "Nova" },
   { key: "Clientes", label: "Clientes" },
-  { key: "Historico", label: "Historico" },
+  { key: "Historico", label: "Histórico" },
+  { key: "Premium", label: "Premium" },
 ];
-const OBJETIVOS = ["Hipertrofia", "Forca", "Resistencia", "Perda de Peso", "Performance", "Reabilitacao"];
+const OBJETIVOS = ["Hipertrofia", "Força", "Resistência", "Perda de Peso", "Performance", "Reabilitação"];
 const FREQS = [2, 3, 4, 5, 6];
 const DURACOES = ["4 sem", "8 sem", "12 sem", "16 sem", "20 sem"];
+const ESPECIALIDADES = ["Musculação", "Crossfit", "Powerlifting", "Emagrecimento", "Reabilitação", "Esportes", "Nutrição Esportiva", "Fisioterapia"];
 
 interface Client {
   id: string;
@@ -49,9 +51,19 @@ interface Prescription {
   created_at: string;
 }
 
+interface TrainerProfile {
+  id: string;
+  name: string;
+  bio: string;
+  specialties?: string;
+  experience_years?: number;
+  price_per_month?: string;
+  contact?: string;
+}
+
 export default function PrescreverScreen() {
   const insets = useSafeAreaInsets();
-  const { token, isPro } = useAuth();
+  const { token, isPro, isStarter } = useAuth();
   const queryClient = useQueryClient();
   const [abaAtiva, setAbaAtiva] = useState<Aba>("Nova");
   const [nomeCliente, setNomeCliente] = useState("");
@@ -64,6 +76,14 @@ export default function PrescreverScreen() {
   const [showAddCliente, setShowAddCliente] = useState(false);
   const [novoClienteNome, setNovoClienteNome] = useState("");
   const [novoClienteEmail, setNovoClienteEmail] = useState("");
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [profNome, setProfNome] = useState("");
+  const [profBio, setProfBio] = useState("");
+  const [profEsp, setProfEsp] = useState<string[]>([]);
+  const [profAnos, setProfAnos] = useState("");
+  const [profPreco, setProfPreco] = useState("");
+  const [profContato, setProfContato] = useState("");
+  const [salvandoPerf, setSalvandoPerf] = useState(false);
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
@@ -90,6 +110,16 @@ export default function PrescreverScreen() {
       return data.prescriptions || data || [];
     },
     enabled: !!token,
+  });
+
+  const { data: trainerProfiles = [], isLoading: loadingProfiles } = useQuery<TrainerProfile[]>({
+    queryKey: ["/api/trainer-profiles"],
+    queryFn: async () => {
+      const res = await fetch(`${baseUrl}api/trainer-profiles`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.profiles || [];
+    },
   });
 
   const addClienteMutation = useMutation({
@@ -132,7 +162,7 @@ export default function PrescreverScreen() {
       });
 
       if (!res.ok) {
-        setResultadoIA("Erro ao gerar prescricao. Verifique sua conexao.");
+        setResultadoIA("Erro ao gerar prescrição. Verifique sua conexão.");
         setGerandoIA(false);
         return;
       }
@@ -167,10 +197,35 @@ export default function PrescreverScreen() {
       }
       queryClient.invalidateQueries({ queryKey: ["/api/prescriptions"] });
     } catch {
-      setResultadoIA("Erro de conexao com o servidor.");
+      setResultadoIA("Erro de conexão com o servidor.");
     } finally {
       setGerandoIA(false);
     }
+  };
+
+  const handleSalvarPerfil = async () => {
+    if (!profNome.trim() || !profBio.trim()) return;
+    setSalvandoPerf(true);
+    try {
+      const res = await fetch(`${baseUrl}api/trainer-profiles`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({
+          name: profNome,
+          bio: profBio,
+          specialties: profEsp.join(", "),
+          experience_years: profAnos ? parseInt(profAnos) : null,
+          price_per_month: profPreco,
+          contact: profContato,
+        }),
+      });
+      if (res.ok) {
+        queryClient.invalidateQueries({ queryKey: ["/api/trainer-profiles"] });
+        setShowPremiumModal(false);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    } catch {}
+    setSalvandoPerf(false);
   };
 
   return (
@@ -190,6 +245,7 @@ export default function PrescreverScreen() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.abasScroll} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }}>
         {ABAS.map((a) => (
           <Pressable key={a.key} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setAbaAtiva(a.key); }} style={[styles.abaTab, abaAtiva === a.key && styles.abaTabAtiva]}>
+            {a.key === "Premium" && <Ionicons name="star" size={12} color={abaAtiva === a.key ? Colors.gold : Colors.muted} style={{ marginRight: 4 }} />}
             <Text style={[styles.abaText, abaAtiva === a.key && styles.abaTextAtiva]}>{a.label}</Text>
           </Pressable>
         ))}
@@ -223,7 +279,7 @@ export default function PrescreverScreen() {
               ))}
             </View>
 
-            <Text style={styles.fieldLabel}>Frequencia Semanal</Text>
+            <Text style={styles.fieldLabel}>Frequência Semanal</Text>
             <View style={styles.freqRow}>
               {FREQS.map((f) => (
                 <Pressable
@@ -236,7 +292,7 @@ export default function PrescreverScreen() {
               ))}
             </View>
 
-            <Text style={styles.fieldLabel}>Duracao do Programa</Text>
+            <Text style={styles.fieldLabel}>Duração do Programa</Text>
             <View style={styles.freqRow}>
               {DURACOES.map((d) => (
                 <Pressable
@@ -252,7 +308,7 @@ export default function PrescreverScreen() {
             {!isPro && (
               <View style={styles.proAlert}>
                 <Ionicons name="lock-closed-outline" size={15} color={Colors.gold} />
-                <Text style={styles.proAlertText}>Geracao com IA requer plano Pro Nexus ou superior.</Text>
+                <Text style={styles.proAlertText}>Geração com IA requer plano Pro Nexus ou superior.</Text>
               </View>
             )}
 
@@ -271,7 +327,7 @@ export default function PrescreverScreen() {
                   <Ionicons name="flash-outline" size={20} color={objetivoSel && isPro ? Colors.black : Colors.muted} />
                 )}
                 <Text style={[styles.gerarBtnText, !(objetivoSel && isPro) && { color: Colors.muted }]}>
-                  {gerandoIA ? "Gerando..." : "Gerar Prescricao com IA"}
+                  {gerandoIA ? "Gerando..." : "Gerar Prescrição com IA"}
                 </Text>
               </LinearGradient>
             </Pressable>
@@ -286,7 +342,7 @@ export default function PrescreverScreen() {
               <View style={styles.emptySection}>
                 <Ionicons name="people-outline" size={40} color={Colors.muted} style={{ marginBottom: 12 }} />
                 <Text style={styles.emptyTitle}>Nenhum cliente cadastrado</Text>
-                <Text style={styles.emptySub}>Toque no icone + para adicionar seu primeiro cliente.</Text>
+                <Text style={styles.emptySub}>Toque no ícone + para adicionar seu primeiro cliente.</Text>
               </View>
             ) : (
               clients.map((c) => (
@@ -324,8 +380,8 @@ export default function PrescreverScreen() {
             ) : prescriptions.length === 0 ? (
               <View style={styles.emptySection}>
                 <Ionicons name="document-text-outline" size={40} color={Colors.muted} style={{ marginBottom: 12 }} />
-                <Text style={styles.emptyTitle}>Nenhuma prescricao criada</Text>
-                <Text style={styles.emptySub}>Gere sua primeira prescricao com IA na aba Nova.</Text>
+                <Text style={styles.emptyTitle}>Nenhuma prescrição criada</Text>
+                <Text style={styles.emptySub}>Gere sua primeira prescrição com IA na aba Nova.</Text>
               </View>
             ) : (
               prescriptions.map((p) => (
@@ -335,7 +391,7 @@ export default function PrescreverScreen() {
                   style={({ pressed }) => [styles.histCard, { opacity: pressed ? 0.85 : 1 }]}
                 >
                   <View style={styles.histLeft}>
-                    <Text style={styles.histCliente}>{p.client_name || p.program_name || "Prescricao"}</Text>
+                    <Text style={styles.histCliente}>{p.client_name || p.program_name || "Prescrição"}</Text>
                     {p.goal ? <Text style={styles.histPrograma}>{p.goal}</Text> : null}
                     <Text style={styles.histData}>{new Date(p.created_at).toLocaleDateString("pt-BR")}</Text>
                   </View>
@@ -347,13 +403,79 @@ export default function PrescreverScreen() {
             )}
           </Animated.View>
         )}
+
+        {abaAtiva === "Premium" && (
+          <Animated.View entering={FadeInDown.delay(60).springify()}>
+            <LinearGradient colors={["rgba(212,175,55,0.12)", "rgba(212,175,55,0.04)"]} style={styles.premiumBanner}>
+              <Ionicons name="star" size={32} color={Colors.gold} style={{ marginBottom: 10 }} />
+              <Text style={styles.premiumTitle}>Prescrição Premium</Text>
+              <Text style={styles.premiumDesc}>
+                Personal trainers certificados divulgam seu perfil profissional para oferecer consultoria online personalizada. Se você tem um plano ativo, pode se cadastrar como profissional.
+              </Text>
+              {isStarter ? (
+                <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setShowPremiumModal(true); }} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }, { width: "100%" }]}>
+                  <LinearGradient colors={[Colors.goldDark, Colors.gold]} style={styles.premiumBtn}>
+                    <Ionicons name="add-circle-outline" size={18} color={Colors.black} />
+                    <Text style={styles.premiumBtnText}>Criar Meu Perfil Profissional</Text>
+                  </LinearGradient>
+                </Pressable>
+              ) : (
+                <View style={styles.lockPremium}>
+                  <Ionicons name="lock-closed-outline" size={16} color={Colors.gold} />
+                  <Text style={styles.lockPremiumText}>Disponível para assinantes (Starter ou superior)</Text>
+                </View>
+              )}
+            </LinearGradient>
+
+            <Text style={styles.sectionTitle}>Profissionais Disponíveis</Text>
+            {loadingProfiles ? (
+              <ActivityIndicator color={Colors.gold} style={{ marginTop: 20 }} />
+            ) : trainerProfiles.length === 0 ? (
+              <View style={styles.emptySection}>
+                <Ionicons name="people-circle-outline" size={40} color={Colors.muted} style={{ marginBottom: 12 }} />
+                <Text style={styles.emptyTitle}>Nenhum profissional cadastrado</Text>
+                <Text style={styles.emptySub}>Seja o primeiro a criar seu perfil profissional na plataforma!</Text>
+              </View>
+            ) : (
+              trainerProfiles.map((p) => (
+                <Pressable
+                  key={p.id}
+                  onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+                  style={({ pressed }) => [styles.trainerCard, { opacity: pressed ? 0.85 : 1 }]}
+                >
+                  <View style={styles.trainerAvatar}>
+                    <Ionicons name="person" size={22} color={Colors.gold} />
+                  </View>
+                  <View style={styles.trainerInfo}>
+                    <Text style={styles.trainerNome}>{p.name}</Text>
+                    {p.specialties && <Text style={styles.trainerEsp} numberOfLines={1}>{p.specialties}</Text>}
+                    <View style={styles.trainerMeta}>
+                      {p.experience_years && (
+                        <View style={styles.trainerBadge}>
+                          <Text style={styles.trainerBadgeText}>{p.experience_years} anos</Text>
+                        </View>
+                      )}
+                      {p.price_per_month && (
+                        <View style={[styles.trainerBadge, { backgroundColor: "rgba(74,222,128,0.12)" }]}>
+                          <Text style={[styles.trainerBadgeText, { color: "#4ADE80" }]}>{p.price_per_month}/mês</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-forward" size={14} color={Colors.muted} />
+                </Pressable>
+              ))
+            )}
+          </Animated.View>
+        )}
       </ScrollView>
 
+      {/* Modal Gerar IA */}
       <Modal visible={showResult} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={[styles.modalCard, { maxHeight: "85%" }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Prescricao Gerada</Text>
+              <Text style={styles.modalTitle}>Prescrição Gerada</Text>
               <Pressable onPress={() => setShowResult(false)}>
                 <Ionicons name="close" size={22} color={Colors.muted} />
               </Pressable>
@@ -361,7 +483,7 @@ export default function PrescreverScreen() {
             {gerandoIA && !resultadoIA ? (
               <View style={styles.loadingBox}>
                 <ActivityIndicator size="large" color={Colors.gold} />
-                <Text style={styles.loadingText}>Atlas IA esta gerando sua prescricao...</Text>
+                <Text style={styles.loadingText}>Atlas IA está gerando sua prescrição...</Text>
               </View>
             ) : (
               <ScrollView showsVerticalScrollIndicator={false}>
@@ -373,6 +495,7 @@ export default function PrescreverScreen() {
         </View>
       </Modal>
 
+      {/* Modal Adicionar Cliente */}
       <Modal visible={showAddCliente} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
@@ -383,40 +506,68 @@ export default function PrescreverScreen() {
               </Pressable>
             </View>
             <Text style={styles.fieldLabel}>Nome</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Nome do cliente"
-              placeholderTextColor={Colors.muted}
-              value={novoClienteNome}
-              onChangeText={setNovoClienteNome}
-              autoFocus
-            />
+            <TextInput style={styles.modalInput} placeholder="Nome do cliente" placeholderTextColor={Colors.muted} value={novoClienteNome} onChangeText={setNovoClienteNome} autoFocus />
             <Text style={styles.fieldLabel}>E-mail (opcional)</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="email@exemplo.com"
-              placeholderTextColor={Colors.muted}
-              value={novoClienteEmail}
-              onChangeText={setNovoClienteEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
+            <TextInput style={styles.modalInput} placeholder="email@exemplo.com" placeholderTextColor={Colors.muted} value={novoClienteEmail} onChangeText={setNovoClienteEmail} keyboardType="email-address" autoCapitalize="none" />
             <Pressable
               onPress={() => { if (novoClienteNome.trim()) addClienteMutation.mutate(); }}
               disabled={addClienteMutation.isPending || !novoClienteNome.trim()}
               style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
             >
-              <LinearGradient
-                colors={novoClienteNome.trim() ? [Colors.goldDark, Colors.gold] : [Colors.border, Colors.border]}
-                style={styles.modalBtn}
-              >
-                {addClienteMutation.isPending ? (
-                  <ActivityIndicator size="small" color={Colors.black} />
-                ) : (
-                  <Text style={[styles.modalBtnText, !novoClienteNome.trim() && { color: Colors.muted }]}>Salvar Cliente</Text>
-                )}
+              <LinearGradient colors={novoClienteNome.trim() ? [Colors.goldDark, Colors.gold] : [Colors.border, Colors.border]} style={styles.modalBtn}>
+                {addClienteMutation.isPending ? <ActivityIndicator size="small" color={Colors.black} /> : <Text style={[styles.modalBtnText, !novoClienteNome.trim() && { color: Colors.muted }]}>Salvar Cliente</Text>}
               </LinearGradient>
             </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal Perfil Premium */}
+      <Modal visible={showPremiumModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { maxHeight: "90%" }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Meu Perfil Profissional</Text>
+              <Pressable onPress={() => setShowPremiumModal(false)}>
+                <Ionicons name="close" size={22} color={Colors.muted} />
+              </Pressable>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={styles.fieldLabel}>Nome completo *</Text>
+              <TextInput style={styles.modalInput} placeholder="Seu nome profissional" placeholderTextColor={Colors.muted} value={profNome} onChangeText={setProfNome} />
+              <Text style={styles.fieldLabel}>Bio *</Text>
+              <TextInput style={[styles.modalInput, { height: 90, textAlignVertical: "top" }]} placeholder="Descreva sua experiência e metodologia..." placeholderTextColor={Colors.muted} value={profBio} onChangeText={setProfBio} multiline />
+              <Text style={styles.fieldLabel}>Especialidades</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }} contentContainerStyle={{ gap: 8 }}>
+                {ESPECIALIDADES.map((e) => (
+                  <Pressable
+                    key={e}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setProfEsp(prev => prev.includes(e) ? prev.filter(x => x !== e) : [...prev, e]);
+                    }}
+                    style={[styles.espChip, profEsp.includes(e) && styles.espChipAtivo]}
+                  >
+                    <Text style={[styles.espChipText, profEsp.includes(e) && styles.espChipTextAtivo]}>{e}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+              <Text style={styles.fieldLabel}>Anos de experiência</Text>
+              <TextInput style={styles.modalInput} placeholder="Ex: 5" placeholderTextColor={Colors.muted} value={profAnos} onChangeText={setProfAnos} keyboardType="number-pad" />
+              <Text style={styles.fieldLabel}>Preço por mês</Text>
+              <TextInput style={styles.modalInput} placeholder="Ex: R$ 200" placeholderTextColor={Colors.muted} value={profPreco} onChangeText={setProfPreco} />
+              <Text style={styles.fieldLabel}>Contato (WhatsApp, Instagram, etc.)</Text>
+              <TextInput style={styles.modalInput} placeholder="@seuinstagram ou (11) 99999-9999" placeholderTextColor={Colors.muted} value={profContato} onChangeText={setProfContato} />
+              <Pressable
+                onPress={handleSalvarPerfil}
+                disabled={salvandoPerf || !profNome.trim() || !profBio.trim()}
+                style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
+              >
+                <LinearGradient colors={profNome.trim() && profBio.trim() ? [Colors.goldDark, Colors.gold] : [Colors.border, Colors.border]} style={styles.modalBtn}>
+                  {salvandoPerf ? <ActivityIndicator size="small" color={Colors.black} /> : <Text style={[styles.modalBtnText, (!profNome.trim() || !profBio.trim()) && { color: Colors.muted }]}>Publicar Perfil</Text>}
+                </LinearGradient>
+              </Pressable>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -432,7 +583,7 @@ const styles = StyleSheet.create({
   addBtn: { borderRadius: 14, overflow: "hidden" },
   addBtnGrad: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   abasScroll: { paddingVertical: 12 },
-  abaTab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.border },
+  abaTab: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.border },
   abaTabAtiva: { backgroundColor: "rgba(212,175,55,0.15)", borderColor: "rgba(212,175,55,0.35)" },
   abaText: { fontFamily: "Outfit_500Medium", fontSize: 13, color: Colors.muted },
   abaTextAtiva: { fontFamily: "Outfit_700Bold", color: Colors.gold },
@@ -474,6 +625,26 @@ const styles = StyleSheet.create({
   histData: { fontFamily: "Outfit_400Regular", fontSize: 11, color: Colors.muted },
   histStatus: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
   histStatusText: { fontFamily: "Outfit_600SemiBold", fontSize: 11 },
+  premiumBanner: { borderRadius: 22, padding: 20, borderWidth: 1, borderColor: "rgba(212,175,55,0.25)", alignItems: "center", marginBottom: 24 },
+  premiumTitle: { fontFamily: "Outfit_800ExtraBold", fontSize: 22, color: Colors.gold, marginBottom: 8 },
+  premiumDesc: { fontFamily: "Outfit_400Regular", fontSize: 13, color: Colors.textSecondary, textAlign: "center", lineHeight: 20, marginBottom: 16 },
+  premiumBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 14, borderRadius: 16, width: "100%" },
+  premiumBtnText: { fontFamily: "Outfit_700Bold", fontSize: 15, color: Colors.black },
+  lockPremium: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(212,175,55,0.08)", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: "rgba(212,175,55,0.15)" },
+  lockPremiumText: { fontFamily: "Outfit_500Medium", fontSize: 12, color: Colors.gold },
+  sectionTitle: { fontFamily: "Outfit_700Bold", fontSize: 18, color: Colors.text, marginBottom: 14, letterSpacing: -0.3 },
+  trainerCard: { flexDirection: "row", alignItems: "center", backgroundColor: Colors.card, borderRadius: 16, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: Colors.border, gap: 12 },
+  trainerAvatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: "rgba(212,175,55,0.15)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(212,175,55,0.25)" },
+  trainerInfo: { flex: 1 },
+  trainerNome: { fontFamily: "Outfit_600SemiBold", fontSize: 15, color: Colors.text, marginBottom: 2 },
+  trainerEsp: { fontFamily: "Outfit_400Regular", fontSize: 12, color: Colors.textSecondary, marginBottom: 6 },
+  trainerMeta: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
+  trainerBadge: { backgroundColor: "rgba(212,175,55,0.12)", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
+  trainerBadgeText: { fontFamily: "Outfit_500Medium", fontSize: 11, color: Colors.gold },
+  espChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.border },
+  espChipAtivo: { backgroundColor: "rgba(212,175,55,0.15)", borderColor: "rgba(212,175,55,0.4)" },
+  espChipText: { fontFamily: "Outfit_500Medium", fontSize: 12, color: Colors.muted },
+  espChipTextAtivo: { color: Colors.gold, fontFamily: "Outfit_600SemiBold" },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "flex-end" },
   modalCard: { backgroundColor: Colors.card, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, borderTopWidth: 1, borderColor: Colors.border, paddingBottom: 40 },
   modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
@@ -482,6 +653,6 @@ const styles = StyleSheet.create({
   modalBtn: { paddingVertical: 15, borderRadius: 14, alignItems: "center" },
   modalBtnText: { fontFamily: "Outfit_700Bold", fontSize: 15, color: Colors.black },
   loadingBox: { alignItems: "center", paddingVertical: 40, gap: 16 },
-  loadingText: { fontFamily: "Outfit_500Medium", fontSize: 14, color: Colors.textSecondary, textAlign: "center" },
+  loadingText: { fontFamily: "Outfit_500Medium", fontSize: 14, color: Colors.textSecondary },
   iaResult: { fontFamily: "Outfit_400Regular", fontSize: 14, color: Colors.text, lineHeight: 22, paddingBottom: 20 },
 });

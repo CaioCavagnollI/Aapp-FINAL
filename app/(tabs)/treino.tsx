@@ -55,14 +55,18 @@ interface Stats {
   streak_days: number;
 }
 
-const EXERCICIOS_BASE = [
-  { nome: "Agachamento Livre", grupo: "Quadriceps", icone: "barbell-outline" },
-  { nome: "Supino Reto", grupo: "Peitoral", icone: "body-outline" },
-  { nome: "Levantamento Terra", grupo: "Posterior", icone: "fitness-outline" },
-  { nome: "Barra Fixa", grupo: "Dorsal", icone: "flash-outline" },
-  { nome: "Desenvolvimento Ombro", grupo: "Deltoide", icone: "trending-up-outline" },
-  { nome: "Rosca Direta", grupo: "Biceps", icone: "pulse-outline" },
-];
+interface Exercise {
+  id: string;
+  name: string;
+  muscle_group: string;
+  secondary_muscles?: string;
+  equipment?: string;
+  difficulty: string;
+  instructions?: string;
+  tips?: string;
+}
+
+const MUSCLE_GROUPS = ["Todos", "Quadríceps", "Peitoral", "Lombar", "Dorsal", "Deltóide", "Bíceps", "Tríceps", "Isquiotibiais", "Glúteos", "Core", "Gastrocnêmio"];
 
 const GOAL_COLORS: Record<string, string> = {
   Hipertrofia: "#D4AF37",
@@ -84,6 +88,9 @@ export default function TreinoScreen() {
   const [newWeeks, setNewWeeks] = useState("12");
   const [newDays, setNewDays] = useState("4");
   const [newLevel, setNewLevel] = useState("Intermediario");
+  const [muscleSel, setMuscleSel] = useState("Todos");
+  const [exSearch, setExSearch] = useState("");
+  const [exDetail, setExDetail] = useState<Exercise | null>(null);
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
   const baseUrl = getApiUrl();
@@ -119,6 +126,22 @@ export default function TreinoScreen() {
       return res.json();
     },
     enabled: !!token,
+  });
+
+  const { data: exercises = [], isLoading: loadingExercises } = useQuery<Exercise[]>({
+    queryKey: ["/api/exercises"],
+    queryFn: async () => {
+      const res = await fetch(`${baseUrl}api/exercises`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.exercises || [];
+    },
+  });
+
+  const filteredExercises = exercises.filter((e) => {
+    const matchMuscle = muscleSel === "Todos" || e.muscle_group === muscleSel;
+    const matchSearch = !exSearch || e.name.toLowerCase().includes(exSearch.toLowerCase()) || e.muscle_group.toLowerCase().includes(exSearch.toLowerCase());
+    return matchMuscle && matchSearch;
   });
 
   const createProgramMutation = useMutation({
@@ -343,21 +366,98 @@ export default function TreinoScreen() {
 
         {catAtiva === "Exercicios" && (
           <Animated.View entering={FadeInDown.delay(180).springify()}>
-            {EXERCICIOS_BASE.map((e) => (
-              <Pressable key={e.nome} onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)} style={({ pressed }) => [styles.exercicioCard, { opacity: pressed ? 0.85 : 1 }]}>
-                <View style={styles.exercicioIcon}>
-                  <Ionicons name={e.icone as any} size={18} color={Colors.gold} />
-                </View>
-                <View style={styles.exercicioInfo}>
-                  <Text style={styles.exercicioNome}>{e.nome}</Text>
-                  <Text style={styles.exercicioGrupo}>{e.grupo}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={14} color={Colors.muted} />
-              </Pressable>
-            ))}
+            <View style={styles.searchBox}>
+              <Ionicons name="search-outline" size={16} color={Colors.muted} style={{ marginRight: 8 }} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Buscar exercício..."
+                placeholderTextColor={Colors.muted}
+                value={exSearch}
+                onChangeText={setExSearch}
+              />
+              {exSearch.length > 0 && (
+                <Pressable onPress={() => setExSearch("")}>
+                  <Ionicons name="close-circle" size={16} color={Colors.muted} />
+                </Pressable>
+              )}
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }} contentContainerStyle={{ gap: 8 }}>
+              {MUSCLE_GROUPS.map((g) => (
+                <Pressable key={g} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setMuscleSel(g); }} style={[styles.catTab, muscleSel === g && styles.catTabActive]}>
+                  <Text style={[styles.catTabText, muscleSel === g && styles.catTabTextActive]}>{g}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+            {loadingExercises ? (
+              <ActivityIndicator color={Colors.gold} style={{ marginTop: 20 }} />
+            ) : filteredExercises.length === 0 ? (
+              <View style={styles.emptySection}>
+                <Ionicons name="barbell-outline" size={32} color={Colors.muted} />
+                <Text style={styles.emptyTitle}>Nenhum exercício encontrado</Text>
+              </View>
+            ) : (
+              filteredExercises.map((e) => (
+                <Pressable key={e.id} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setExDetail(e); }} style={({ pressed }) => [styles.exercicioCard, { opacity: pressed ? 0.85 : 1 }]}>
+                  <View style={styles.exercicioIcon}>
+                    <Ionicons name="barbell-outline" size={18} color={Colors.gold} />
+                  </View>
+                  <View style={styles.exercicioInfo}>
+                    <Text style={styles.exercicioNome}>{e.name}</Text>
+                    <View style={styles.exMeta}>
+                      <Text style={styles.exercicioGrupo}>{e.muscle_group}</Text>
+                      {e.equipment && <Text style={styles.exEquip}>· {e.equipment}</Text>}
+                      <View style={[styles.exDiff, { backgroundColor: e.difficulty === "Avançado" ? "rgba(248,113,113,0.15)" : e.difficulty === "Intermediário" ? "rgba(212,175,55,0.15)" : "rgba(74,222,128,0.15)" }]}>
+                        <Text style={[styles.exDiffText, { color: e.difficulty === "Avançado" ? "#F87171" : e.difficulty === "Intermediário" ? Colors.gold : "#4ADE80" }]}>{e.difficulty}</Text>
+                      </View>
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-forward" size={14} color={Colors.muted} />
+                </Pressable>
+              ))
+            )}
+            <Text style={styles.exCount}>{filteredExercises.length} exercício{filteredExercises.length !== 1 ? "s" : ""} encontrado{filteredExercises.length !== 1 ? "s" : ""}</Text>
           </Animated.View>
         )}
       </ScrollView>
+
+      {/* Exercise Detail Modal */}
+      <Modal visible={!!exDetail} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { maxHeight: "85%" }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{exDetail?.name}</Text>
+              <Pressable onPress={() => setExDetail(null)}>
+                <Ionicons name="close" size={22} color={Colors.muted} />
+              </Pressable>
+            </View>
+            {exDetail && (
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <View style={styles.exDetailMeta}>
+                  <View style={styles.exDetailBadge}><Ionicons name="body-outline" size={12} color={Colors.gold} /><Text style={styles.exDetailBadgeText}>{exDetail.muscle_group}</Text></View>
+                  {exDetail.secondary_muscles ? <View style={styles.exDetailBadge}><Text style={styles.exDetailBadgeText}>{exDetail.secondary_muscles}</Text></View> : null}
+                  {exDetail.equipment ? <View style={[styles.exDetailBadge, { backgroundColor: "rgba(96,165,250,0.12)" }]}><Ionicons name="barbell-outline" size={12} color="#60A5FA" /><Text style={[styles.exDetailBadgeText, { color: "#60A5FA" }]}>{exDetail.equipment}</Text></View> : null}
+                  <View style={[styles.exDetailBadge, { backgroundColor: "rgba(212,175,55,0.12)" }]}><Text style={[styles.exDetailBadgeText, { color: Colors.gold }]}>{exDetail.difficulty}</Text></View>
+                </View>
+                {exDetail.instructions && (
+                  <>
+                    <Text style={styles.exDetailSectionTitle}>Como executar</Text>
+                    <Text style={styles.exDetailText}>{exDetail.instructions}</Text>
+                  </>
+                )}
+                {exDetail.tips && (
+                  <>
+                    <Text style={styles.exDetailSectionTitle}>Dicas importantes</Text>
+                    <View style={styles.exTipBox}>
+                      <Ionicons name="bulb-outline" size={14} color={Colors.gold} />
+                      <Text style={styles.exDetailText}>{exDetail.tips}</Text>
+                    </View>
+                  </>
+                )}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
 
       <Modal visible={showNewProgram} transparent animationType="slide">
         <View style={styles.modalOverlay}>
@@ -499,11 +599,24 @@ const styles = StyleSheet.create({
   sessaoNotes: { fontFamily: "Outfit_400Regular", fontSize: 11, color: Colors.textSecondary, marginTop: 2 },
   sessBadge: { backgroundColor: "rgba(74,222,128,0.15)", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   sessBadgeText: { fontFamily: "Outfit_600SemiBold", fontSize: 11, color: "#4ADE80" },
+  searchBox: { flexDirection: "row", alignItems: "center", backgroundColor: Colors.card, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1, borderColor: Colors.border, marginBottom: 14 },
+  searchInput: { flex: 1, fontFamily: "Outfit_400Regular", fontSize: 14, color: Colors.text },
   exercicioCard: { flexDirection: "row", alignItems: "center", backgroundColor: Colors.card, borderRadius: 14, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: Colors.border, gap: 12 },
   exercicioIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(212,175,55,0.1)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(212,175,55,0.2)" },
   exercicioInfo: { flex: 1 },
-  exercicioNome: { fontFamily: "Outfit_600SemiBold", fontSize: 14, color: Colors.text, marginBottom: 2 },
+  exercicioNome: { fontFamily: "Outfit_600SemiBold", fontSize: 14, color: Colors.text, marginBottom: 4 },
   exercicioGrupo: { fontFamily: "Outfit_400Regular", fontSize: 12, color: Colors.muted },
+  exMeta: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
+  exEquip: { fontFamily: "Outfit_400Regular", fontSize: 11, color: Colors.muted },
+  exDiff: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 },
+  exDiffText: { fontFamily: "Outfit_500Medium", fontSize: 10 },
+  exCount: { fontFamily: "Outfit_400Regular", fontSize: 12, color: Colors.muted, textAlign: "center", paddingVertical: 8 },
+  exDetailMeta: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 18 },
+  exDetailBadge: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(212,175,55,0.1)", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 },
+  exDetailBadgeText: { fontFamily: "Outfit_500Medium", fontSize: 12, color: Colors.gold },
+  exDetailSectionTitle: { fontFamily: "Outfit_700Bold", fontSize: 15, color: Colors.text, marginBottom: 8, marginTop: 4 },
+  exDetailText: { fontFamily: "Outfit_400Regular", fontSize: 14, color: Colors.textSecondary, lineHeight: 22, flex: 1 },
+  exTipBox: { flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: "rgba(212,175,55,0.06)", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: "rgba(212,175,55,0.15)", marginBottom: 16 },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "flex-end" },
   modalCard: { backgroundColor: Colors.card, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, borderTopWidth: 1, borderColor: Colors.border, paddingBottom: 40 },
   modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },

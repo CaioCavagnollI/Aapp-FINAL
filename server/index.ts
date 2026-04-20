@@ -236,6 +236,23 @@ function setupErrorHandler(app: express.Application) {
 
   setupErrorHandler(app);
 
+  // Ensure admin always has vitalicio plan on startup (after a short delay for DB tables to initialize)
+  setTimeout(async () => {
+    try {
+      const storage = await import("./storage");
+      const adminUsername = process.env.ADMIN_USERNAME || "admin";
+      const adminUser = await storage.getUserByUsername(adminUsername);
+      if (adminUser && adminUser.plan !== "vitalicio") {
+        await storage.updateUserPlan(adminUser.id, "vitalicio");
+        log(`Admin plan updated to vitalicio for user: ${adminUsername}`);
+      } else if (adminUser) {
+        log(`Admin already has vitalicio plan.`);
+      }
+    } catch (e) {
+      log("Could not auto-fix admin plan:", e);
+    }
+  }, 5000);
+
   const port = parseInt(process.env.PORT || "5000", 10);
   server.listen(
     {
