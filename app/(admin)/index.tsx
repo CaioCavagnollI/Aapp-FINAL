@@ -220,7 +220,7 @@ export default function AdminIndexScreen() {
             </Pressable>
           </View>
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => router.replace("/(tabs)/perfil")}
             style={styles.backBtn}
           >
             <Ionicons name="arrow-back-outline" size={20} color={Colors.gold} />
