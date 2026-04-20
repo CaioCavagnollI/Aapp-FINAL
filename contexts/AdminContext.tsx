@@ -11,8 +11,6 @@ import { getApiUrl } from "@/lib/query-client";
 import { fetch } from "expo/fetch";
 
 const ADMIN_TOKEN_KEY = "nexusatlas_admin_token";
-const ADMIN_DEFAULT_USERNAME = "admin@nexus221177";
-const ADMIN_DEFAULT_PASSWORD = "admin2211777_";
 
 interface AdminContextValue {
   isLoggedIn: boolean;
