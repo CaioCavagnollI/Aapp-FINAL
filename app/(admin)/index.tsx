@@ -219,6 +219,12 @@ export default function AdminIndexScreen() {
               <Ionicons name="log-out-outline" size={18} color="#F87171" />
             </Pressable>
           </View>
+          <Pressable
+            onPress={() => router.back()}
+            style={styles.backBtn}
+          >
+            <Ionicons name="arrow-back-outline" size={20} color={Colors.gold} />
+          </Pressable>
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(80).springify()}>
@@ -326,6 +332,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: "rgba(248,113,113,0.2)",
+  },
+  backBtn: {
+    alignSelf: "center",
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "rgba(212,175,55,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(212,175,55,0.2)",
+    marginBottom: 20,
   },
   uploadBtn: {
     flexDirection: "row",
