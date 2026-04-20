@@ -21,11 +21,13 @@ import Animated, {
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { useAdmin } from "@/contexts/AdminContext";
+import { useAuth } from "@/contexts/AuthContext";
 import Colors from "@/constants/colors";
 
 export default function AdminLoginScreen() {
   const insets = useSafeAreaInsets();
   const { login } = useAdmin();
+  const { setUserFromAdmin } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -58,6 +60,9 @@ export default function AdminLoginScreen() {
 
     if (result.success) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (result.userToken && result.user) {
+        await setUserFromAdmin(result.user, result.userToken);
+      }
       router.replace("/(admin)");
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);

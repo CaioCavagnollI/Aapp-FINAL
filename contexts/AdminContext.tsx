@@ -18,7 +18,7 @@ interface AdminContextValue {
   isLoggedIn: boolean;
   token: string | null;
   isLoading: boolean;
-  login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (username: string, password: string) => Promise<{ success: boolean; error?: string; userToken?: string; user?: any }>;
   logout: () => Promise<void>;
 }
 
@@ -28,7 +28,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const doLogin = async (username: string, password: string): Promise<string | null> => {
+  const doLogin = async (username: string, password: string) => {
     try {
       const baseUrl = getApiUrl();
       const res = await fetch(`${baseUrl}api/admin/login`, {
@@ -37,8 +37,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ username, password }),
       });
       if (!res.ok) return null;
-      const data = (await res.json()) as { token: string };
-      return data.token;
+      const data = (await res.json()) as { token: string; userToken?: string; user?: any };
+      return data;
     } catch {
       return null;
     }
@@ -53,14 +53,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
           setIsLoading(false);
           return;
         }
-        // Auto-login with default admin credentials
-        const newToken = await doLogin(ADMIN_DEFAULT_USERNAME, ADMIN_DEFAULT_PASSWORD);
-        if (newToken) {
-          await AsyncStorage.setItem(ADMIN_TOKEN_KEY, newToken);
-          setToken(newToken);
-        }
       } catch {
-        // ignore
       } finally {
         setIsLoading(false);
       }
@@ -68,16 +61,13 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     init();
   }, []);
 
-  const login = async (
-    username: string,
-    password: string,
-  ): Promise<{ success: boolean; error?: string }> => {
+  const login = async (username: string, password: string): Promise<{ success: boolean; error?: string; userToken?: string; user?: any }> => {
     try {
-      const newToken = await doLogin(username, password);
-      if (!newToken) return { success: false, error: "Credenciais inválidas" };
-      await AsyncStorage.setItem(ADMIN_TOKEN_KEY, newToken);
-      setToken(newToken);
-      return { success: true };
+      const data = await doLogin(username, password);
+      if (!data) return { success: false, error: "Credenciais inválidas" };
+      await AsyncStorage.setItem(ADMIN_TOKEN_KEY, data.token);
+      setToken(data.token);
+      return { success: true, userToken: data.userToken, user: data.user };
     } catch {
       return { success: false, error: "Erro de conexão com o servidor" };
     }
@@ -89,19 +79,11 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   };
 
   const value = useMemo(
-    () => ({
-      isLoggedIn: !!token,
-      token,
-      isLoading,
-      login,
-      logout,
-    }),
+    () => ({ isLoggedIn: !!token, token, isLoading, login, logout }),
     [token, isLoading],
   );
 
-  return (
-    <AdminContext.Provider value={value}>{children}</AdminContext.Provider>
-  );
+  return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>;
 }
 
 export function useAdmin() {

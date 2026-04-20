@@ -16,6 +16,8 @@ const AUTH_USER_KEY = "nexusatlas_auth_user";
 export interface AuthUser {
   id: string;
   username: string;
+  plan: string;
+  is_admin: boolean;
 }
 
 interface AuthContextValue {
@@ -23,9 +25,13 @@ interface AuthContextValue {
   token: string | null;
   isLoading: boolean;
   isLoggedIn: boolean;
+  isPro: boolean;
+  isVitalicio: boolean;
   login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
+  setUserFromAdmin: (user: AuthUser, token: string) => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -49,10 +55,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setIsLoading(false));
   }, []);
 
-  const login = async (
-    username: string,
-    password: string,
-  ): Promise<{ success: boolean; error?: string }> => {
+  const refreshUser = async () => {
+    if (!token) return;
+    try {
+      const baseUrl = getApiUrl();
+      const res = await fetch(`${baseUrl}api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { user: AuthUser };
+        await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user));
+        setUser(data.user);
+      }
+    } catch {}
+  };
+
+  const login = async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const baseUrl = getApiUrl();
       const res = await fetch(`${baseUrl}api/auth/login`, {
@@ -72,10 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const register = async (
-    username: string,
-    password: string,
-  ): Promise<{ success: boolean; error?: string }> => {
+  const register = async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const baseUrl = getApiUrl();
       const res = await fetch(`${baseUrl}api/auth/register`, {
@@ -95,6 +110,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const setUserFromAdmin = async (adminUser: AuthUser, userToken: string) => {
+    await AsyncStorage.setItem(AUTH_TOKEN_KEY, userToken);
+    await AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(adminUser));
+    setToken(userToken);
+    setUser(adminUser);
+  };
+
   const logout = async () => {
     await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
     await AsyncStorage.removeItem(AUTH_USER_KEY);
@@ -102,16 +124,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const isPro = user?.plan === "pro_monthly" || user?.plan === "pro_annual" || user?.plan === "vitalicio" || user?.is_admin === true;
+  const isVitalicio = user?.plan === "vitalicio" || user?.is_admin === true;
+
   const value = useMemo(
-    () => ({
-      user,
-      token,
-      isLoading,
-      isLoggedIn: !!token,
-      login,
-      register,
-      logout,
-    }),
+    () => ({ user, token, isLoading, isLoggedIn: !!token, isPro, isVitalicio, login, register, logout, setUserFromAdmin, refreshUser }),
     [user, token, isLoading],
   );
 
