@@ -1,6 +1,7 @@
 import express from "express";
 import type { Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
+import { initDb } from "./db";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -232,6 +233,14 @@ function setupErrorHandler(app: express.Application) {
 
   configureExpoAndLanding(app);
 
+  // Initialize DB tables before registering routes
+  try {
+    await initDb();
+    log("Database tables initialized successfully");
+  } catch (e) {
+    log("Database initialization error:", e);
+  }
+
   const server = await registerRoutes(app);
 
   setupErrorHandler(app);
@@ -240,7 +249,7 @@ function setupErrorHandler(app: express.Application) {
   setTimeout(async () => {
     try {
       const storage = await import("./storage");
-      const adminUsername = process.env.ADMIN_USERNAME || "admin";
+      const adminUsername = process.env.ADMIN_USERNAME || "admin@nexus221177";
       const adminUser = await storage.getUserByUsername(adminUsername);
       if (adminUser && adminUser.plan !== "vitalicio") {
         await storage.updateUserPlan(adminUser.id, "vitalicio");

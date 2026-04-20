@@ -15,6 +15,7 @@ const ADMIN_TOKEN_KEY = "nexusatlas_admin_token";
 interface AdminContextValue {
   isLoggedIn: boolean;
   token: string | null;
+  adminToken: string | null;
   isLoading: boolean;
   login: (username: string, password: string) => Promise<{ success: boolean; error?: string; userToken?: string; user?: any }>;
   logout: () => Promise<void>;
@@ -77,7 +78,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   };
 
   const value = useMemo(
-    () => ({ isLoggedIn: !!token, token, isLoading, login, logout }),
+    () => ({ isLoggedIn: !!token, token, adminToken: token, isLoading, login, logout }),
     [token, isLoading],
   );
 
