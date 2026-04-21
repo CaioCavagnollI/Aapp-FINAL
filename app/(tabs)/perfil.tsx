@@ -20,6 +20,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetch } from "expo/fetch";
 import Colors from "@/constants/colors";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { getApiUrl } from "@/lib/query-client";
 
 interface MenuItemProps {
@@ -80,8 +81,8 @@ const PLAN_LABELS: Record<string, string> = {
 export default function PerfilScreen() {
   const insets = useSafeAreaInsets();
   const { user, token, logout, isPro, isVitalicio } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const [notifs, setNotifs] = useState(true);
-  const [darkMode, setDarkMode] = useState(true);
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
@@ -236,8 +237,8 @@ export default function PerfilScreen() {
             sub="Sempre ativo"
             onPress={() => {}}
             toggle
-            value={darkMode}
-            onToggle={(v) => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setDarkMode(v); }}
+            value={isDark}
+            onToggle={(v) => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); toggleTheme(); }}
           />
           <View style={styles.divider} />
           <MenuItem icon="language-outline" label="Idioma" sub="Português (Brasil)" onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)} />

@@ -691,7 +691,7 @@ ${notes ? `- Observações: ${notes}` : ""}`;
     try {
       const { pool } = await import("./db");
       const result = await pool.query(
-        "SELECT id, filename, original_name, size, mime_type, ext, uploaded_at FROM user_files WHERE user_id = $1 ORDER BY uploaded_at DESC",
+        "SELECT id, filename, original_name, size, mime_type, ext, uploaded_at, COALESCE(folder, 'Geral') as folder FROM user_files WHERE user_id = $1 ORDER BY uploaded_at DESC",
         [req.userId]
       );
       const files = result.rows.map((r) => ({
@@ -709,11 +709,14 @@ ${notes ? `- Observações: ${notes}` : ""}`;
     try {
       const { pool } = await import("./db");
       const ext = path.extname(req.file.originalname).toLowerCase();
+      const folder = (req.body.folder as string) || "Geral";
+      // Ensure folder column exists
+      try { await pool.query("ALTER TABLE user_files ADD COLUMN IF NOT EXISTS folder TEXT DEFAULT 'Geral'"); } catch {}
       await pool.query(
-        "INSERT INTO user_files (user_id, filename, original_name, size, mime_type, ext) VALUES ($1, $2, $3, $4, $5, $6)",
-        [req.userId, req.file.filename, req.file.originalname, req.file.size, req.file.mimetype, ext]
+        "INSERT INTO user_files (user_id, filename, original_name, size, mime_type, ext, folder) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+        [req.userId, req.file.filename, req.file.originalname, req.file.size, req.file.mimetype, ext, folder]
       );
-      res.json({ message: "Arquivo enviado com sucesso", originalName: req.file.originalname, size: req.file.size });
+      res.json({ message: "Arquivo enviado com sucesso", originalName: req.file.originalname, size: req.file.size, folder });
     } catch (error) {
       res.status(500).json({ error: "Erro ao registrar arquivo" });
     }

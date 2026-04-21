@@ -9,6 +9,7 @@ import { queryClient } from "@/lib/query-client";
 import { StatusBar } from "expo-status-bar";
 import { AdminProvider } from "@/contexts/AdminContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import {
   useFonts,
   Outfit_300Light,
@@ -75,16 +76,18 @@ export default function RootLayout() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <AdminProvider>
-            <GestureHandlerRootView style={{ flex: 1 }}>
-              <KeyboardProvider>
-                <StatusBar style="light" />
-                <RootLayoutNav />
-              </KeyboardProvider>
-            </GestureHandlerRootView>
-          </AdminProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <AdminProvider>
+              <GestureHandlerRootView style={{ flex: 1 }}>
+                <KeyboardProvider>
+                  <StatusBar style="auto" />
+                  <RootLayoutNav />
+                </KeyboardProvider>
+              </GestureHandlerRootView>
+            </AdminProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );

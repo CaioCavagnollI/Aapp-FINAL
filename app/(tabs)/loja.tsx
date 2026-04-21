@@ -1,15 +1,7 @@
 import React, { useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Pressable,
-  Platform,
-  Modal,
-  TextInput,
-  ActivityIndicator,
-  Image,
+  View, Text, StyleSheet, ScrollView, Pressable, Platform,
+  Modal, TextInput, ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -21,615 +13,388 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetch } from "expo/fetch";
 import Colors from "@/constants/colors";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { getApiUrl } from "@/lib/query-client";
 
-type CatLoja = "Planos" | "Programas" | "Conteudo" | "Livros" | "Artigos" | "Cursos" | "Vender";
-const CATS_LOJA: CatLoja[] = ["Planos", "Programas", "Conteudo", "Livros", "Artigos", "Cursos", "Vender"];
+type StoreTab = "planos" | "produtos" | "mentores" | "vender";
 
-type MetodoPgto = "cartao" | "pix" | "paypal" | "stripe";
-
-const PROGRAMAS_LOJA = [
-  { nome: "Hipertrofia Máxima 16 semanas", preco: "R$ 97", nivel: "Avançado", avaliacao: "4.9" },
-  { nome: "Powerlifting Competição 20 semanas", preco: "R$ 147", nivel: "Elite", avaliacao: "4.8" },
-  { nome: "Base de Força 8 semanas", preco: "R$ 47", nivel: "Iniciante", avaliacao: "4.7" },
-];
-
-const CONTEUDOS = [
-  { nome: "Guia Completo de Periodização", tipo: "PDF", preco: "R$ 27", paginas: "87 páginas" },
-  { nome: "Banco de Exercícios Científicos", tipo: "Vídeo", preco: "R$ 67", paginas: "120 vídeos" },
-  { nome: "Calculadora de Volume Semanal", tipo: "Ferramenta", preco: "R$ 37", paginas: "Web App" },
-];
-
-const LIVROS = [
-  { nome: "Ciência do Treinamento de Força", autor: "Dr. Mike Israetel", preco: "R$ 49", avaliacao: "4.9" },
-  { nome: "Periodização para o Esporte", autor: "Tudor Bompa", preco: "R$ 39", avaliacao: "4.8" },
-  { nome: "Nutrição para Alta Performance", autor: "Lyle McDonald", preco: "R$ 35", avaliacao: "4.7" },
-];
-
-const ARTIGOS = [
-  { nome: "Hipertrofia Muscular: O que a Ciência Diz", tipo: "Artigo", preco: "Grátis", paginas: "12 min leitura" },
-  { nome: "Periodização Ondulatória vs Linear", tipo: "Artigo Científico", preco: "R$ 9", paginas: "28 min leitura" },
-  { nome: "Suplementação Baseada em Evidências", tipo: "E-book", preco: "R$ 19", paginas: "45 páginas" },
-];
-
-const CURSOS = [
-  { nome: "Personal Trainer Científico", duracao: "40 horas", preco: "R$ 297", nivel: "Completo" },
-  { nome: "Nutrição Esportiva Avançada", duracao: "20 horas", preco: "R$ 197", nivel: "Intermediário" },
-  { nome: "Biomecânica Aplicada", duracao: "15 horas", preco: "R$ 147", nivel: "Avançado" },
-];
-
-interface Plano {
-  id: string;
-  nome: string;
-  precoMensal: string | null;
-  precoAnual: string | null;
-  cor: string;
-  corDark: string;
-  tag: string;
-  adminOnly: boolean;
-  recursos: string[];
-}
-
-const PLANOS: Plano[] = [
+const PLANOS = [
   {
-    id: "vitalicio",
-    nome: "Vitalício Nexus",
-    precoMensal: null,
-    precoAnual: null,
-    cor: Colors.gold,
-    corDark: Colors.goldDark,
-    tag: "ADMIN EXCLUSIVO",
-    adminOnly: true,
-    recursos: [
-      "Atlas IA ilimitado vitaliciamente",
-      "Todos os programas científicos",
-      "Scanner nutricional avançado",
-      "Prescrições ilimitadas para clientes",
-      "Acesso antecipado a novas funcionalidades",
-      "Painel administrativo completo",
-    ],
+    id: "free", nome: "Gratuito", precoMensal: null, precoAnual: null,
+    cor: Colors.muted, tag: "Atual",
+    recursos: ["Atlas Brain (limitado)", "5 prescrições/mês", "Scanner básico", "Biblioteca de exercícios"],
   },
   {
-    id: "pro",
-    nome: "Pro Nexus",
-    precoMensal: "R$ 99",
-    precoAnual: "R$ 990",
-    cor: "#60A5FA",
-    corDark: "#2563EB",
-    tag: "MAIS POPULAR",
-    adminOnly: false,
-    recursos: [
-      "Atlas IA com 500 perguntas/mês",
-      "10 programas científicos",
-      "Scanner nutricional completo",
-      "Até 20 clientes ativos",
-      "Prescrições com IA ilimitadas",
-      "Vender na loja",
-      "Atualizações mensais",
-    ],
+    id: "starter_monthly", nome: "Starter", precoMensal: "R$ 29/mês", precoAnual: "R$ 249/ano",
+    cor: "#60A5FA", tag: "Popular",
+    recursos: ["Atlas Brain completo", "Prescrições ilimitadas", "Scanner avançado", "Meus Treinos completo", "Atlas Tools"],
   },
   {
-    id: "starter",
-    nome: "Starter",
-    precoMensal: "R$ 19",
-    precoAnual: "R$ 190",
-    cor: "#4ADE80",
-    corDark: "#16A34A",
-    tag: "COMECE AGORA",
-    adminOnly: false,
-    recursos: [
-      "Atlas IA com 50 perguntas/mês",
-      "3 programas científicos",
-      "Scanner nutricional básico",
-      "Até 5 clientes ativos",
-      "Vender na loja",
-    ],
+    id: "pro_monthly", nome: "Pro", precoMensal: "R$ 59/mês", precoAnual: "R$ 499/ano",
+    cor: "#A78BFA", tag: "Recomendado",
+    recursos: ["Tudo do Starter", "Clientes ilimitados", "Acervo Atlas completo", "Exportação de prescrições", "Mentores Atlas", "Orientação Acadêmica"],
   },
   {
-    id: "free",
-    nome: "Gratuito",
-    precoMensal: "R$ 0",
-    precoAnual: "R$ 0",
-    cor: Colors.muted,
-    corDark: "#4B4B55",
-    tag: "PLANO ATUAL",
-    adminOnly: false,
-    recursos: [
-      "Atlas IA básico (10x/mês)",
-      "1 programa de treino",
-      "Sem scanner nutricional",
-      "Sem clientes",
-    ],
+    id: "vitalicio", nome: "Vitalício", precoMensal: null, precoAnual: "R$ 997 (único)",
+    cor: Colors.gold, tag: "Melhor Valor",
+    recursos: ["Tudo do Pro", "Acesso vitalício", "Todas as futuras atualizações", "Suporte prioritário", "Badge exclusivo"],
   },
 ];
 
-const METODOS_PGTO = [
-  { key: "cartao" as MetodoPgto, label: "Cartão de Crédito", icon: "card-outline", sub: "Visa, Master, Elo, Amex" },
-  { key: "pix" as MetodoPgto, label: "PIX", icon: "qr-code-outline", sub: "Aprovação instantânea" },
-  { key: "paypal" as MetodoPgto, label: "PayPal", icon: "logo-paypal", sub: "Conta PayPal" },
-  { key: "stripe" as MetodoPgto, label: "Stripe", icon: "flash-outline", sub: "Stripe Checkout" },
+const PRODUTOS_MOCK = [
+  { nome: "Programa Hipertrofia Máxima 16 sem", tipo: "Programa", preco: "R$ 97", avaliacao: "4.9", autor: "Carlos M.", icon: "barbell-outline" },
+  { nome: "Fundamentos do Treinamento de Força", tipo: "Audiobook", preco: "R$ 49", avaliacao: "4.8", autor: "Ana R.", icon: "headset-outline" },
+  { nome: "Guia Completo de Periodização", tipo: "E-book", preco: "R$ 27", avaliacao: "4.7", autor: "Pedro S.", icon: "book-outline" },
+  { nome: "Powerlifting Competição 20 sem", tipo: "Programa", preco: "R$ 147", avaliacao: "4.8", autor: "Rafael B.", icon: "barbell-outline" },
+  { nome: "Nutrição Esportiva Baseada em Evidências", tipo: "Curso", preco: "R$ 197", avaliacao: "4.9", autor: "Dra. Marina L.", icon: "school-outline" },
+  { nome: "Base de Força para Iniciantes", tipo: "Programa", preco: "R$ 47", avaliacao: "4.7", autor: "João F.", icon: "barbell-outline" },
 ];
 
-const STORE_CATS = ["Programa", "Conteúdo", "Livro", "Artigo", "Curso"];
+const TIPO_ICONS: Record<string, string> = {
+  Programa: "barbell-outline",
+  Audiobook: "headset-outline",
+  "E-book": "book-outline",
+  Curso: "school-outline",
+  Artigo: "document-text-outline",
+};
 
-interface StoreProduct {
-  id: string;
-  seller_name: string;
-  name: string;
-  description?: string;
-  price: string;
-  category: string;
-  contact?: string;
-}
+const TIPO_CORES: Record<string, string> = {
+  Programa: "#D4AF37",
+  Audiobook: "#60A5FA",
+  "E-book": "#4ADE80",
+  Curso: "#A78BFA",
+  Artigo: "#F472B6",
+};
 
-export default function LojaScreen() {
+const MENTORES = [
+  { nome: "Dr. Carlos Mendes", especialidade: "Fisiologia do Exercício", avaliacao: "4.9", preco: "R$ 300/mês", clientes: 42, badge: "Verificado" },
+  { nome: "Ana Paula Rocha", especialidade: "Emagrecimento & Nutrição", avaliacao: "4.8", preco: "R$ 250/mês", clientes: 38, badge: "Top Mentor" },
+  { nome: "Rafael Borges", especialidade: "Powerlifting & Força", avaliacao: "5.0", preco: "R$ 350/mês", clientes: 25, badge: "Elite" },
+  { nome: "Marina Lima", especialidade: "Orientação Acadêmica", avaliacao: "4.9", preco: "R$ 200/mês", clientes: 15, badge: "Acadêmico" },
+];
+
+export default function AtlasStoreScreen() {
   const insets = useSafeAreaInsets();
-  const { user, token, isPro, isVitalicio, isStarter } = useAuth();
+  const { user, token, isPro } = useAuth();
+  const { colors, isDark } = useTheme();
   const qc = useQueryClient();
-  const [catAtiva, setCatAtiva] = useState<CatLoja>("Planos");
-  const [periodoAnual, setPeriodoAnual] = useState(false);
-  const [showPayModal, setShowPayModal] = useState(false);
-  const [planoSel, setPlanoSel] = useState<Plano | null>(null);
-  const [metodoPgto, setMetodoPgto] = useState<MetodoPgto>("pix");
-  const [step, setStep] = useState<"metodo" | "dados" | "confirmacao">("metodo");
-  const [cardNum, setCardNum] = useState("");
-  const [cardName, setCardName] = useState("");
-  const [cardExp, setCardExp] = useState("");
-  const [cardCvv, setCardCvv] = useState("");
-  const [processing, setProcessing] = useState(false);
-  const [showVenderModal, setShowVenderModal] = useState(false);
+  const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const botPad = Platform.OS === "web" ? 34 : insets.bottom;
+  const [tab, setTab] = useState<StoreTab>("planos");
+  const [tipoFilter, setTipoFilter] = useState("Todos");
+  const [showSellModal, setShowSellModal] = useState(false);
   const [prodNome, setProdNome] = useState("");
   const [prodDesc, setProdDesc] = useState("");
   const [prodPreco, setProdPreco] = useState("");
-  const [prodCat, setProdCat] = useState(STORE_CATS[0]);
+  const [prodCategoria, setProdCategoria] = useState("Programa");
   const [prodContato, setProdContato] = useState("");
-  const [enviandoProd, setEnviandoProd] = useState(false);
-  const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const botPad = Platform.OS === "web" ? 34 : insets.bottom;
-  const baseUrl = getApiUrl();
+  const [showCheckout, setShowCheckout] = useState<string | null>(null);
+  const [showMentorModal, setShowMentorModal] = useState(false);
+  const [mentorNome, setMentorNome] = useState("");
+  const [mentorBio, setMentorBio] = useState("");
+  const [mentorEsp, setMentorEsp] = useState("");
+  const [mentorPreco, setMentorPreco] = useState("");
+  const [mentorContato, setMentorContato] = useState("");
 
-  const { data: communityProducts = [] } = useQuery<StoreProduct[]>({
+  const bg = isDark ? Colors.black : Colors.lightBg;
+  const cardBg = isDark ? Colors.card : Colors.lightCard;
+  const textColor = isDark ? Colors.text : Colors.lightText;
+  const textSec = isDark ? Colors.textSecondary : Colors.lightTextSecondary;
+  const borderColor = isDark ? Colors.border : Colors.lightBorder;
+  const inputBg = isDark ? Colors.cardElevated : "#F0F0F5";
+
+  const { data: prodData } = useQuery<{ products: any[] }>({
     queryKey: ["/api/store/products"],
     queryFn: async () => {
-      const res = await fetch(`${baseUrl}api/store/products`);
-      if (!res.ok) return [];
-      const data = await res.json();
-      return data.products || [];
+      const res = await fetch(`${getApiUrl()}api/store/products`);
+      return res.json();
     },
   });
 
-  const getCurrentPlanLabel = () => {
-    if (isVitalicio) return "Vitalício Nexus";
-    if (user?.plan === "pro_monthly" || user?.plan === "pro_annual") return "Pro Nexus";
-    if (user?.plan === "starter_monthly" || user?.plan === "starter_annual") return "Starter";
-    return "Gratuito";
-  };
+  const addProductMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await fetch(`${getApiUrl()}api/store/products`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(data) });
+      return res.json();
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/store/products"] }); setShowSellModal(false); setProdNome(""); setProdDesc(""); setProdPreco(""); },
+  });
 
-  const handleAssinar = (plano: Plano) => {
-    if (plano.adminOnly) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    setPlanoSel(plano);
-    setStep("metodo");
-    setShowPayModal(true);
-  };
+  const TABS: { key: StoreTab; label: string; icon: string }[] = [
+    { key: "planos", label: "Planos", icon: "star-outline" },
+    { key: "produtos", label: "Produtos", icon: "grid-outline" },
+    { key: "mentores", label: "Mentores Atlas", icon: "people-outline" },
+    { key: "vender", label: "Vender", icon: "storefront-outline" },
+  ];
 
-  const handleConfirmarPgto = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    setProcessing(true);
-    await new Promise((r) => setTimeout(r, 2000));
-    setProcessing(false);
-    setStep("confirmacao");
-  };
-
-  const handleEnviarProduto = async () => {
-    if (!prodNome.trim() || !prodPreco.trim()) return;
-    if (!isStarter) return;
-    setEnviandoProd(true);
-    try {
-      const res = await fetch(`${baseUrl}api/store/products`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ name: prodNome, description: prodDesc, price: prodPreco, category: prodCat, contact: prodContato }),
-      });
-      if (res.ok) {
-        qc.invalidateQueries({ queryKey: ["/api/store/products"] });
-        setShowVenderModal(false);
-        setProdNome(""); setProdDesc(""); setProdPreco(""); setProdContato("");
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
-    } catch {}
-    setEnviandoProd(false);
-  };
-
-  const planoAtual = getCurrentPlanLabel();
-  const preco = planoSel ? (periodoAnual ? planoSel.precoAnual : planoSel.precoMensal) : null;
+  const TIPOS = ["Todos", "Programa", "Audiobook", "E-book", "Curso", "Artigo"];
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: topPad + 12 }]}>
+    <View style={[styles.root, { backgroundColor: bg }]}>
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: topPad + 8, backgroundColor: bg, borderBottomColor: borderColor }]}>
         <View>
-          <Text style={styles.pageTitle}>Loja</Text>
-          <Text style={styles.pageSubtitle}>Planos, conteúdo e comunidade</Text>
+          <Text style={[styles.title, { color: textColor }]}>Atlas Store</Text>
+          <Text style={[styles.subtitle, { color: textSec }]}>Atlas Market — Planos · Produtos · Mentores</Text>
         </View>
-        <View style={styles.planBadge}>
-          <Text style={styles.planBadgeText}>{planoAtual}</Text>
+        <View style={[styles.planBadge, { backgroundColor: Colors.gold + "22", borderColor: Colors.gold + "44" }]}>
+          <Ionicons name="star" size={14} color={Colors.gold} />
+          <Text style={[styles.planBadgeText, { color: Colors.gold }]}>{user?.plan === "vitalicio" ? "Vitalício" : user?.plan === "free" ? "Free" : user?.plan?.replace("_", " ") ?? "Free"}</Text>
         </View>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catScroll} contentContainerStyle={{ gap: 8, paddingHorizontal: 20 }}>
-        {CATS_LOJA.map((c) => (
-          <Pressable
-            key={c}
-            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setCatAtiva(c); }}
-            style={[styles.catTab, catAtiva === c && styles.catTabAtiva]}
-          >
-            <Text style={[styles.catText, catAtiva === c && styles.catTextAtivo]}>{c}</Text>
+      {/* Tab bar */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.tabScroll, { backgroundColor: bg, borderBottomColor: borderColor }]}
+        contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
+        {TABS.map(t => (
+          <Pressable key={t.key} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setTab(t.key); }}
+            style={[styles.tabBtn, { borderColor: tab === t.key ? Colors.gold : borderColor, backgroundColor: tab === t.key ? Colors.gold + "22" : "transparent" }]}>
+            <Ionicons name={t.icon as any} size={13} color={tab === t.key ? Colors.gold : textSec} />
+            <Text style={[styles.tabText, { color: tab === t.key ? Colors.gold : textSec }]}>{t.label}</Text>
           </Pressable>
         ))}
       </ScrollView>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scroll, { paddingBottom: botPad + 100 }]}>
-
-        {catAtiva === "Planos" && (
-          <Animated.View entering={FadeInDown.delay(60).springify()}>
-            <View style={styles.toggleRow}>
-              <Pressable onPress={() => setPeriodoAnual(false)} style={[styles.toggleBtn, !periodoAnual && styles.toggleActive]}>
-                <Text style={[styles.toggleText, !periodoAnual && styles.toggleTextActive]}>Mensal</Text>
-              </Pressable>
-              <Pressable onPress={() => setPeriodoAnual(true)} style={[styles.toggleBtn, periodoAnual && styles.toggleActive]}>
-                <Text style={[styles.toggleText, periodoAnual && styles.toggleTextActive]}>Anual</Text>
-                <View style={styles.descontoBadge}><Text style={styles.descontoText}>-17%</Text></View>
-              </Pressable>
-            </View>
-
-            {PLANOS.map((p, idx) => {
-              const isCurrent = planoAtual === p.nome;
-              const precoExib = p.adminOnly ? null : periodoAnual ? p.precoAnual : p.precoMensal;
-              const isFree = p.id === "free";
-
-              return (
-                <Animated.View key={p.id} entering={FadeInDown.delay(60 + idx * 50).springify()} style={styles.planoWrapper}>
-                  {!isFree && (
-                    <View style={styles.tagInlineRow}>
-                      <View style={[styles.tagInline, { backgroundColor: `${p.cor}15`, borderColor: `${p.cor}30` }]}>
-                        <Text style={[styles.tagInlineText, { color: p.cor }]}>{p.tag}</Text>
-                      </View>
+      {/* Planos */}
+      {tab === "planos" && (
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: botPad + 80 }}>
+          <Text style={[styles.sectionTitle, { color: textColor }]}>Escolha seu Plano</Text>
+          <Text style={[styles.sectionSub, { color: textSec }]}>Desbloqueie todo o potencial do Nexus Atlas</Text>
+          {PLANOS.map((plano, i) => (
+            <Animated.View key={plano.id} entering={FadeInDown.delay(i * 80)}>
+              <Pressable
+                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setShowCheckout(plano.id); }}
+                style={[styles.planoCard, { backgroundColor: cardBg, borderColor: plano.id === user?.plan ? plano.cor : borderColor, borderWidth: plano.id === user?.plan ? 2 : 1 }]}
+              >
+                <LinearGradient colors={[plano.cor + "22", "transparent"]} style={[StyleSheet.absoluteFill, { borderRadius: 16 }]} />
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <Text style={[styles.planoNome, { color: plano.cor }]}>{plano.nome}</Text>
+                  <View style={[styles.planoTag, { backgroundColor: plano.cor + "22" }]}>
+                    <Text style={[styles.planoTagText, { color: plano.cor }]}>{plano.id === user?.plan ? "✓ Atual" : plano.tag}</Text>
+                  </View>
+                </View>
+                {plano.precoMensal && <Text style={[styles.planoPrecoMensal, { color: textColor }]}>{plano.precoMensal}</Text>}
+                {plano.precoAnual && <Text style={[styles.planoPrecoAnual, { color: textSec }]}>{plano.precoAnual}</Text>}
+                {!plano.precoMensal && !plano.precoAnual && <Text style={[styles.planoPrecoMensal, { color: textColor }]}>Gratuito</Text>}
+                <View style={{ marginTop: 12, gap: 6 }}>
+                  {plano.recursos.map((r, j) => (
+                    <View key={j} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                      <Ionicons name="checkmark-circle" size={14} color={plano.cor} />
+                      <Text style={[styles.planoRecurso, { color: textSec }]}>{r}</Text>
                     </View>
-                  )}
-                  <LinearGradient colors={[`${p.cor}10`, `${p.cor}04`]} style={[styles.planoCard, { borderColor: `${p.cor}30` }]}>
-                    <Text style={[styles.planoNome, { color: p.cor }]}>{p.nome}</Text>
-                    {p.adminOnly ? (
-                      <View style={styles.adminOnlyBox}>
-                        <Ionicons name="shield-checkmark" size={16} color={Colors.gold} />
-                        <Text style={styles.adminOnlyText}>Concedido a administradores automaticamente</Text>
-                      </View>
-                    ) : (
-                      <View style={styles.planoPrecoRow}>
-                        <Text style={[styles.planoPreco, { color: p.cor }]}>{precoExib}</Text>
-                        <Text style={styles.planoParcelado}>{periodoAnual ? "/ano" : "/mês"}</Text>
-                      </View>
-                    )}
-                    <View style={styles.divisor} />
-                    {p.recursos.map((r) => (
-                      <View key={r} style={styles.recursoRow}>
-                        <Ionicons name="checkmark-circle" size={15} color={p.cor} />
-                        <Text style={styles.recursoText}>{r}</Text>
-                      </View>
-                    ))}
-                    {!p.adminOnly && (
-                      <Pressable onPress={() => { if (!isCurrent) handleAssinar(p); }} disabled={isCurrent} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }, { marginTop: 16 }]}>
-                        <LinearGradient colors={isCurrent ? [Colors.border, Colors.border] : [p.corDark, p.cor]} style={styles.planoBtn}>
-                          <Text style={[styles.planoBtnText, isCurrent && { color: Colors.muted }]}>
-                            {isCurrent ? "Plano Atual" : isFree ? "Continuar Grátis" : `Assinar ${p.nome}`}
-                          </Text>
-                        </LinearGradient>
-                      </Pressable>
-                    )}
-                  </LinearGradient>
-                </Animated.View>
-              );
-            })}
+                  ))}
+                </View>
+                {plano.id !== user?.plan && plano.id !== "free" && (
+                  <View style={[styles.assinBtn, { backgroundColor: plano.cor }]}>
+                    <Text style={styles.assinBtnText}>Assinar {plano.nome}</Text>
+                  </View>
+                )}
+              </Pressable>
+            </Animated.View>
+          ))}
 
-            <Animated.View entering={FadeInDown.delay(340).springify()} style={styles.garantiaCard}>
-              <Ionicons name="shield-checkmark-outline" size={24} color={Colors.gold} />
-              <View style={styles.garantiaText}>
-                <Text style={styles.garantiaTitulo}>Garantia de 7 dias</Text>
-                <Text style={styles.garantiaSub}>Satisfação garantida ou reembolso total sem perguntas.</Text>
+          {/* Métodos de pagamento */}
+          <View style={[styles.pgtoCard, { backgroundColor: cardBg, borderColor }]}>
+            <Text style={[styles.pgtoTitle, { color: textColor }]}>Métodos de Pagamento Aceitos</Text>
+            <View style={styles.pgtoRow}>
+              {[["card-outline", "Cartão de Crédito"], ["qr-code-outline", "Pix"], ["logo-paypal", "PayPal"], ["card", "Stripe"]].map(([icon, label]) => (
+                <View key={label} style={[styles.pgtoItem, { borderColor }]}>
+                  <Ionicons name={icon as any} size={20} color={Colors.gold} />
+                  <Text style={[styles.pgtoLabel, { color: textSec }]}>{label}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        </ScrollView>
+      )}
+
+      {/* Produtos */}
+      {tab === "produtos" && (
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: botPad + 80 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+            {TIPOS.map(t => (
+              <Pressable key={t} onPress={() => setTipoFilter(t)} style={[styles.tipoChip, { borderColor: tipoFilter === t ? Colors.gold : borderColor, backgroundColor: tipoFilter === t ? Colors.gold + "22" : "transparent" }]}>
+                <Text style={[styles.tipoChipText, { color: tipoFilter === t ? Colors.gold : textSec }]}>{t}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+          {PRODUTOS_MOCK.filter(p => tipoFilter === "Todos" || p.tipo === tipoFilter).map((p, i) => (
+            <Animated.View key={i} entering={FadeInDown.delay(i * 50)} style={[styles.prodCard, { backgroundColor: cardBg, borderColor }]}>
+              <View style={[styles.prodIcon, { backgroundColor: (TIPO_CORES[p.tipo] || Colors.gold) + "22" }]}>
+                <Ionicons name={(TIPO_ICONS[p.tipo] || "document-outline") as any} size={22} color={TIPO_CORES[p.tipo] || Colors.gold} />
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={[styles.prodNome, { color: textColor }]}>{p.nome}</Text>
+                <Text style={[styles.prodAutor, { color: textSec }]}>por {p.autor}</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 }}>
+                  <View style={[styles.tipoTag, { backgroundColor: (TIPO_CORES[p.tipo] || Colors.gold) + "22" }]}>
+                    <Text style={[styles.tipoTagText, { color: TIPO_CORES[p.tipo] || Colors.gold }]}>{p.tipo}</Text>
+                  </View>
+                  <Text style={[styles.prodAvaliacao, { color: textSec }]}>⭐ {p.avaliacao}</Text>
+                </View>
+              </View>
+              <View style={{ alignItems: "flex-end" }}>
+                <Text style={[styles.prodPreco, { color: Colors.gold }]}>{p.preco}</Text>
+                <Pressable style={[styles.comprarBtn, { backgroundColor: Colors.gold }]}>
+                  <Text style={styles.comprarBtnText}>Comprar</Text>
+                </Pressable>
               </View>
             </Animated.View>
-          </Animated.View>
-        )}
+          ))}
+        </ScrollView>
+      )}
 
-        {catAtiva === "Programas" && (
-          <Animated.View entering={FadeInDown.delay(60).springify()}>
-            {PROGRAMAS_LOJA.map((p) => (
-              <Pressable key={p.nome} onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)} style={({ pressed }) => [styles.prodCard, { opacity: pressed ? 0.85 : 1 }]}>
-                <View style={styles.prodIconBox}>
-                  <Ionicons name="barbell-outline" size={22} color={Colors.gold} />
+      {/* Mentores Atlas */}
+      {tab === "mentores" && (
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: botPad + 80 }}>
+          <Text style={[styles.sectionTitle, { color: textColor }]}>Mentores Atlas</Text>
+          <Text style={[styles.sectionSub, { color: textSec }]}>Personal Trainers e Acadêmicos verificados para orientação profissional e acadêmica</Text>
+
+          {/* Academic Guidance Highlight */}
+          <View style={[styles.academicCard, { backgroundColor: cardBg, borderColor: "#3B82F6" + "44" }]}>
+            <LinearGradient colors={["#3B82F6" + "22", "transparent"]} style={[StyleSheet.absoluteFill, { borderRadius: 14 }]} />
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 }}>
+              <Ionicons name="school-outline" size={22} color="#3B82F6" />
+              <Text style={[styles.academicTitle, { color: textColor }]}>Orientação Acadêmica</Text>
+              <View style={[styles.proTag, { backgroundColor: "#3B82F6" + "22" }]}>
+                <Text style={[styles.proTagText, { color: "#3B82F6" }]}>Pro+</Text>
+              </View>
+            </View>
+            <Text style={[styles.academicDesc, { color: textSec }]}>Submissions para revisão, orientação de trabalhos científicos, correções com patches auditáveis em DOCX, tradução de conteúdo acadêmico e acompanhamento de métricas.</Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+              {["Revisão de TCC/Artigos", "Patches auditáveis DOCX", "Tradução Acadêmica", "Métricas de Progresso"].map((f, i) => (
+                <View key={i} style={[styles.featureTag, { backgroundColor: "#3B82F6" + "22" }]}>
+                  <Text style={[styles.featureTagText, { color: "#3B82F6" }]}>{f}</Text>
                 </View>
-                <View style={styles.prodInfo}>
-                  <Text style={styles.prodNome}>{p.nome}</Text>
-                  <View style={styles.prodMetaRow}>
-                    <Text style={styles.prodNivel}>{p.nivel}</Text>
-                    <View style={styles.prodRating}>
-                      <Ionicons name="star" size={11} color={Colors.gold} />
-                      <Text style={styles.prodRatingText}>{p.avaliacao}</Text>
-                    </View>
+              ))}
+            </View>
+          </View>
+
+          {MENTORES.map((m, i) => (
+            <Animated.View key={i} entering={FadeInDown.delay(i * 70)} style={[styles.mentorCard, { backgroundColor: cardBg, borderColor }]}>
+              <View style={[styles.mentorAvatar, { backgroundColor: Colors.gold + "22" }]}>
+                <Ionicons name="person-outline" size={24} color={Colors.gold} />
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <Text style={[styles.mentorNome, { color: textColor }]}>{m.nome}</Text>
+                  <View style={[styles.mentorBadge, { backgroundColor: Colors.gold + "22" }]}>
+                    <Text style={[styles.mentorBadgeText, { color: Colors.gold }]}>{m.badge}</Text>
                   </View>
                 </View>
-                <Text style={styles.prodPreco}>{p.preco}</Text>
-              </Pressable>
-            ))}
-          </Animated.View>
-        )}
-
-        {catAtiva === "Conteudo" && (
-          <Animated.View entering={FadeInDown.delay(60).springify()}>
-            {CONTEUDOS.map((c) => (
-              <Pressable key={c.nome} onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)} style={({ pressed }) => [styles.prodCard, { opacity: pressed ? 0.85 : 1 }]}>
-                <View style={[styles.prodIconBox, { backgroundColor: "rgba(96,165,250,0.1)", borderColor: "rgba(96,165,250,0.2)" }]}>
-                  <Ionicons name={c.tipo === "PDF" ? "document-text-outline" : c.tipo === "Vídeo" ? "play-circle-outline" : "construct-outline"} size={22} color="#60A5FA" />
+                <Text style={[styles.mentorEsp, { color: textSec }]}>{m.especialidade}</Text>
+                <View style={{ flexDirection: "row", gap: 12, marginTop: 4 }}>
+                  <Text style={[styles.mentorMeta, { color: textSec }]}>⭐ {m.avaliacao}</Text>
+                  <Text style={[styles.mentorMeta, { color: textSec }]}>👥 {m.clientes} clientes</Text>
                 </View>
-                <View style={styles.prodInfo}>
-                  <Text style={styles.prodNome}>{c.nome}</Text>
-                  <Text style={styles.prodNivel}>{c.tipo} · {c.paginas}</Text>
-                </View>
-                <Text style={styles.prodPreco}>{c.preco}</Text>
-              </Pressable>
-            ))}
-          </Animated.View>
-        )}
-
-        {catAtiva === "Livros" && (
-          <Animated.View entering={FadeInDown.delay(60).springify()}>
-            <Text style={styles.catDesc}>Livros científicos selecionados sobre treinamento e nutrição esportiva</Text>
-            {LIVROS.map((l) => (
-              <Pressable key={l.nome} onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)} style={({ pressed }) => [styles.prodCard, { opacity: pressed ? 0.85 : 1 }]}>
-                <View style={[styles.prodIconBox, { backgroundColor: "rgba(167,139,250,0.1)", borderColor: "rgba(167,139,250,0.2)" }]}>
-                  <Ionicons name="book-outline" size={22} color="#A78BFA" />
-                </View>
-                <View style={styles.prodInfo}>
-                  <Text style={styles.prodNome}>{l.nome}</Text>
-                  <View style={styles.prodMetaRow}>
-                    <Text style={styles.prodNivel}>{l.autor}</Text>
-                    <View style={styles.prodRating}>
-                      <Ionicons name="star" size={11} color={Colors.gold} />
-                      <Text style={styles.prodRatingText}>{l.avaliacao}</Text>
-                    </View>
-                  </View>
-                </View>
-                <Text style={styles.prodPreco}>{l.preco}</Text>
-              </Pressable>
-            ))}
-          </Animated.View>
-        )}
-
-        {catAtiva === "Artigos" && (
-          <Animated.View entering={FadeInDown.delay(60).springify()}>
-            <Text style={styles.catDesc}>Artigos e e-books baseados em evidências científicas</Text>
-            {ARTIGOS.map((a) => (
-              <Pressable key={a.nome} onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)} style={({ pressed }) => [styles.prodCard, { opacity: pressed ? 0.85 : 1 }]}>
-                <View style={[styles.prodIconBox, { backgroundColor: "rgba(244,114,182,0.1)", borderColor: "rgba(244,114,182,0.2)" }]}>
-                  <Ionicons name="newspaper-outline" size={22} color="#F472B6" />
-                </View>
-                <View style={styles.prodInfo}>
-                  <Text style={styles.prodNome}>{a.nome}</Text>
-                  <Text style={styles.prodNivel}>{a.tipo} · {a.paginas}</Text>
-                </View>
-                <Text style={[styles.prodPreco, a.preco === "Grátis" && { color: "#4ADE80" }]}>{a.preco}</Text>
-              </Pressable>
-            ))}
-          </Animated.View>
-        )}
-
-        {catAtiva === "Cursos" && (
-          <Animated.View entering={FadeInDown.delay(60).springify()}>
-            <Text style={styles.catDesc}>Cursos completos de formação em ciências do esporte</Text>
-            {CURSOS.map((c) => (
-              <Pressable key={c.nome} onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)} style={({ pressed }) => [styles.prodCard, { opacity: pressed ? 0.85 : 1 }]}>
-                <View style={[styles.prodIconBox, { backgroundColor: "rgba(251,146,60,0.1)", borderColor: "rgba(251,146,60,0.2)" }]}>
-                  <Ionicons name="school-outline" size={22} color="#FB923C" />
-                </View>
-                <View style={styles.prodInfo}>
-                  <Text style={styles.prodNome}>{c.nome}</Text>
-                  <View style={styles.prodMetaRow}>
-                    <Text style={styles.prodNivel}>{c.nivel}</Text>
-                    <Text style={styles.prodNivel}>{c.duracao}</Text>
-                  </View>
-                </View>
-                <Text style={styles.prodPreco}>{c.preco}</Text>
-              </Pressable>
-            ))}
-          </Animated.View>
-        )}
-
-        {catAtiva === "Vender" && (
-          <Animated.View entering={FadeInDown.delay(60).springify()}>
-            <LinearGradient colors={["rgba(212,175,55,0.1)", "rgba(212,175,55,0.04)"]} style={styles.venderInfoCard}>
-              <Ionicons name="storefront-outline" size={28} color={Colors.gold} style={{ marginBottom: 10 }} />
-              <Text style={styles.venderTitle}>Venda na Loja Nexus</Text>
-              <Text style={styles.venderDesc}>
-                Qualquer assinante pode publicar seus produtos — programas, conteúdos, livros, artigos ou cursos. Todos os anúncios passam por revisão do administrador antes de serem publicados.
-              </Text>
-              {!isStarter ? (
-                <View style={styles.lockVender}>
-                  <Ionicons name="lock-closed-outline" size={16} color={Colors.gold} />
-                  <Text style={styles.lockVenderText}>Disponível para assinantes (Starter ou superior)</Text>
-                </View>
-              ) : (
-                <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setShowVenderModal(true); }} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }, { width: "100%" }]}>
-                  <LinearGradient colors={[Colors.goldDark, Colors.gold]} style={styles.venderBtn}>
-                    <Ionicons name="add-circle-outline" size={18} color={Colors.black} />
-                    <Text style={styles.venderBtnText}>Publicar Produto</Text>
-                  </LinearGradient>
+              </View>
+              <View style={{ alignItems: "flex-end" }}>
+                <Text style={[styles.mentorPreco, { color: Colors.gold }]}>{m.preco}</Text>
+                <Pressable style={[styles.contratarBtn, { borderColor: Colors.gold }]}>
+                  <Text style={[styles.contratarBtnText, { color: Colors.gold }]}>Contratar</Text>
                 </Pressable>
-              )}
-            </LinearGradient>
-
-            {communityProducts.length > 0 && (
-              <>
-                <Text style={styles.sectionLabel}>Produtos da Comunidade</Text>
-                {communityProducts.map((p) => (
-                  <Pressable key={p.id} onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)} style={({ pressed }) => [styles.prodCard, { opacity: pressed ? 0.85 : 1 }]}>
-                    <View style={[styles.prodIconBox, { backgroundColor: "rgba(212,175,55,0.1)" }]}>
-                      <Ionicons name="person-circle-outline" size={22} color={Colors.gold} />
-                    </View>
-                    <View style={styles.prodInfo}>
-                      <Text style={styles.prodNome}>{p.name}</Text>
-                      <Text style={styles.prodNivel}>{p.category} · @{p.seller_name}</Text>
-                      {p.description ? <Text style={styles.prodDesc} numberOfLines={1}>{p.description}</Text> : null}
-                    </View>
-                    <Text style={styles.prodPreco}>{p.price}</Text>
-                  </Pressable>
-                ))}
-              </>
-            )}
-
-            {communityProducts.length === 0 && (
-              <View style={styles.emptyBox}>
-                <Ionicons name="bag-outline" size={32} color={Colors.muted} />
-                <Text style={styles.emptyText}>Nenhum produto da comunidade ainda</Text>
               </View>
-            )}
-          </Animated.View>
-        )}
-      </ScrollView>
+            </Animated.View>
+          ))}
 
-      {/* Modal Pagamento */}
-      <Modal visible={showPayModal} transparent animationType="slide">
+          <Pressable onPress={() => setShowMentorModal(true)} style={[styles.tornarseMentorBtn, { borderColor: Colors.gold }]}>
+            <Ionicons name="add-circle-outline" size={18} color={Colors.gold} />
+            <Text style={[styles.tornarseMentorText, { color: Colors.gold }]}>Tornar-se Mentor Atlas</Text>
+          </Pressable>
+        </ScrollView>
+      )}
+
+      {/* Vender */}
+      {tab === "vender" && (
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: botPad + 80 }}>
+          <Text style={[styles.sectionTitle, { color: textColor }]}>Vender no Atlas Store</Text>
+          <Text style={[styles.sectionSub, { color: textSec }]}>Publique seus programas, audiobooks, e-books, cursos e mais para a comunidade Atlas</Text>
+          <View style={[styles.sellInfoCard, { backgroundColor: cardBg, borderColor }]}>
+            {[["barbell-outline", "Programas de Treino", "Venda seus programas completos com periodização"], ["headset-outline", "Audiobooks", "Publique conteúdo em áudio para consumo no app"], ["book-outline", "E-books & PDFs", "Materiais educativos em formato digital"], ["school-outline", "Cursos Online", "Sequências estruturadas de aprendizado"], ["document-text-outline", "Artigos Científicos", "Conteúdo científico revisado e premium"]].map(([icon, nome, desc], i) => (
+              <View key={i} style={[styles.prodTypeRow, { borderBottomColor: borderColor, borderBottomWidth: i < 4 ? 1 : 0 }]}>
+                <View style={[styles.prodTypeIcon, { backgroundColor: Colors.gold + "22" }]}>
+                  <Ionicons name={icon as any} size={18} color={Colors.gold} />
+                </View>
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text style={[styles.prodTypeNome, { color: textColor }]}>{nome}</Text>
+                  <Text style={[styles.prodTypeDesc, { color: textSec }]}>{desc}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+          <Pressable onPress={() => setShowSellModal(true)} style={[styles.publishBtn, { backgroundColor: Colors.gold }]}>
+            <Ionicons name="add-circle-outline" size={18} color="#000" />
+            <Text style={styles.publishBtnText}>Publicar Produto</Text>
+          </Pressable>
+        </ScrollView>
+      )}
+
+      {/* Checkout Modal */}
+      <Modal visible={!!showCheckout} transparent animationType="slide" onRequestClose={() => setShowCheckout(null)}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { maxHeight: "90%" }]}>
-            <View style={styles.modalHeader}>
-              <View>
-                <Text style={styles.modalTitle}>{planoSel?.nome}</Text>
-                {preco && <Text style={styles.modalSubtitle}>{preco}{periodoAnual ? "/ano" : "/mês"}</Text>}
-              </View>
-              <Pressable onPress={() => { setShowPayModal(false); setStep("metodo"); }}>
-                <Ionicons name="close" size={22} color={Colors.muted} />
+          <View style={[styles.modal, { backgroundColor: isDark ? Colors.card : "#fff" }]}>
+            <Text style={[styles.modalTitle, { color: textColor }]}>Finalizar Assinatura</Text>
+            {showCheckout && (() => {
+              const plano = PLANOS.find(p => p.id === showCheckout);
+              if (!plano) return null;
+              return (
+                <View>
+                  <Text style={[styles.checkoutPlan, { color: Colors.gold }]}>{plano.nome}</Text>
+                  <Text style={[styles.checkoutPreco, { color: textColor }]}>{plano.precoMensal || plano.precoAnual || "Gratuito"}</Text>
+                  <Text style={[styles.modalLabel, { color: textSec }]}>Método de Pagamento</Text>
+                  {[["card-outline", "Cartão de Crédito/Débito"], ["qr-code-outline", "Pix (instantâneo)"], ["logo-paypal", "PayPal"]].map(([icon, label]) => (
+                    <Pressable key={label} style={[styles.pgtoOption, { borderColor, backgroundColor: isDark ? Colors.cardElevated : "#F5F5F7" }]}>
+                      <Ionicons name={icon as any} size={20} color={Colors.gold} />
+                      <Text style={[styles.pgtoOptionText, { color: textColor }]}>{label}</Text>
+                      <Ionicons name="chevron-forward-outline" size={16} color={textSec} style={{ marginLeft: "auto" as any }} />
+                    </Pressable>
+                  ))}
+                </View>
+              );
+            })()}
+            <View style={{ flexDirection: "row", gap: 12, marginTop: 16 }}>
+              <Pressable onPress={() => setShowCheckout(null)} style={[styles.modalCancelBtn, { borderColor }]}>
+                <Text style={[styles.modalCancelText, { color: textSec }]}>Cancelar</Text>
+              </Pressable>
+              <Pressable onPress={() => setShowCheckout(null)} style={[styles.modalConfirmBtn, { backgroundColor: Colors.gold }]}>
+                <Text style={styles.modalConfirmText}>Prosseguir</Text>
               </Pressable>
             </View>
-
-            {step === "metodo" && (
-              <ScrollView showsVerticalScrollIndicator={false}>
-                <Text style={styles.stepLabel}>Escolha a forma de pagamento</Text>
-                {METODOS_PGTO.map((m) => (
-                  <Pressable key={m.key} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setMetodoPgto(m.key); }} style={[styles.metodoCard, metodoPgto === m.key && styles.metodoCardAtivo]}>
-                    <View style={[styles.metodoIcon, metodoPgto === m.key && styles.metodoIconAtivo]}>
-                      <Ionicons name={m.icon as any} size={22} color={metodoPgto === m.key ? Colors.gold : Colors.muted} />
-                    </View>
-                    <View style={styles.metodoInfo}>
-                      <Text style={[styles.metodoLabel, metodoPgto === m.key && { color: Colors.gold }]}>{m.label}</Text>
-                      <Text style={styles.metodoSub}>{m.sub}</Text>
-                    </View>
-                    {metodoPgto === m.key && <Ionicons name="checkmark-circle" size={20} color={Colors.gold} />}
-                  </Pressable>
-                ))}
-                <Pressable onPress={() => setStep("dados")} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }, { marginTop: 16 }]}>
-                  <LinearGradient colors={[Colors.goldDark, Colors.gold]} style={styles.modalBtn}>
-                    <Text style={styles.modalBtnText}>Continuar</Text>
-                  </LinearGradient>
-                </Pressable>
-              </ScrollView>
-            )}
-
-            {step === "dados" && (
-              <ScrollView showsVerticalScrollIndicator={false}>
-                {metodoPgto === "pix" && (
-                  <View style={styles.pixBox}>
-                    <View style={styles.pixQr}><Ionicons name="qr-code-outline" size={80} color={Colors.gold} /></View>
-                    <Text style={styles.pixKey}>Chave PIX: pagamentos@nexus.app</Text>
-                    <Text style={styles.pixInstr}>Abra o app do seu banco, selecione PIX e escaneie o código QR ou use a chave acima. O acesso será liberado em até 5 minutos após confirmação.</Text>
-                    <Pressable onPress={handleConfirmarPgto} disabled={processing} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }, { marginTop: 16 }]}>
-                      <LinearGradient colors={[Colors.goldDark, Colors.gold]} style={styles.modalBtn}>
-                        {processing ? <ActivityIndicator size="small" color={Colors.black} /> : <Text style={styles.modalBtnText}>Já paguei via PIX</Text>}
-                      </LinearGradient>
-                    </Pressable>
-                  </View>
-                )}
-                {metodoPgto === "cartao" && (
-                  <View>
-                    <Text style={styles.stepLabel}>Dados do Cartão</Text>
-                    <TextInput style={styles.payInput} placeholder="Número do cartão" placeholderTextColor={Colors.muted} value={cardNum} onChangeText={setCardNum} keyboardType="number-pad" maxLength={19} />
-                    <TextInput style={styles.payInput} placeholder="Nome no cartão" placeholderTextColor={Colors.muted} value={cardName} onChangeText={setCardName} autoCapitalize="characters" />
-                    <View style={{ flexDirection: "row", gap: 12 }}>
-                      <TextInput style={[styles.payInput, { flex: 1 }]} placeholder="MM/AA" placeholderTextColor={Colors.muted} value={cardExp} onChangeText={setCardExp} keyboardType="number-pad" maxLength={5} />
-                      <TextInput style={[styles.payInput, { flex: 1 }]} placeholder="CVV" placeholderTextColor={Colors.muted} value={cardCvv} onChangeText={setCardCvv} keyboardType="number-pad" maxLength={4} secureTextEntry />
-                    </View>
-                    <Pressable onPress={handleConfirmarPgto} disabled={processing} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }, { marginTop: 8 }]}>
-                      <LinearGradient colors={[Colors.goldDark, Colors.gold]} style={styles.modalBtn}>
-                        {processing ? <ActivityIndicator size="small" color={Colors.black} /> : <Text style={styles.modalBtnText}>Pagar {preco}</Text>}
-                      </LinearGradient>
-                    </Pressable>
-                  </View>
-                )}
-                {(metodoPgto === "paypal" || metodoPgto === "stripe") && (
-                  <View style={styles.redirectBox}>
-                    <Ionicons name={metodoPgto === "paypal" ? "logo-paypal" : "flash"} size={48} color={Colors.gold} style={{ marginBottom: 16 }} />
-                    <Text style={styles.redirectTitle}>Redirecionando para {metodoPgto === "paypal" ? "PayPal" : "Stripe"}</Text>
-                    <Text style={styles.redirectSub}>Você será redirecionado para a página segura de pagamento. Após a confirmação, seu acesso será liberado automaticamente.</Text>
-                    <Pressable onPress={handleConfirmarPgto} disabled={processing} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }, { marginTop: 20 }]}>
-                      <LinearGradient colors={[Colors.goldDark, Colors.gold]} style={styles.modalBtn}>
-                        {processing ? <ActivityIndicator size="small" color={Colors.black} /> : <Text style={styles.modalBtnText}>Abrir {metodoPgto === "paypal" ? "PayPal" : "Stripe"}</Text>}
-                      </LinearGradient>
-                    </Pressable>
-                  </View>
-                )}
-              </ScrollView>
-            )}
-
-            {step === "confirmacao" && (
-              <View style={styles.successBox}>
-                <LinearGradient colors={[Colors.goldDark, Colors.gold]} style={styles.successIcon}>
-                  <Ionicons name="checkmark" size={40} color={Colors.black} />
-                </LinearGradient>
-                <Text style={styles.successTitle}>Pagamento Processado!</Text>
-                <Text style={styles.successSub}>Seu plano {planoSel?.nome} foi ativado com sucesso. Aproveite todos os recursos disponíveis.</Text>
-                <Pressable onPress={() => { setShowPayModal(false); setStep("metodo"); router.push("/(tabs)"); }} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }, { marginTop: 20, width: "100%" }]}>
-                  <LinearGradient colors={[Colors.goldDark, Colors.gold]} style={styles.modalBtn}>
-                    <Text style={styles.modalBtnText}>Começando agora</Text>
-                  </LinearGradient>
-                </Pressable>
-              </View>
-            )}
           </View>
         </View>
       </Modal>
 
-      {/* Modal Vender */}
-      <Modal visible={showVenderModal} transparent animationType="slide">
+      {/* Sell Modal */}
+      <Modal visible={showSellModal} transparent animationType="slide" onRequestClose={() => setShowSellModal(false)}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { maxHeight: "90%" }]}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Publicar Produto</Text>
-              <Pressable onPress={() => setShowVenderModal(false)}>
-                <Ionicons name="close" size={22} color={Colors.muted} />
-              </Pressable>
-            </View>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.venderLegal}>Seu produto passará por revisão antes de ser publicado. Certifique-se de que está dentro das categorias permitidas.</Text>
-              <Text style={styles.fieldLabel}>Nome do produto *</Text>
-              <TextInput style={styles.payInput} placeholder="Ex: Programa 12 semanas Hipertrofia" placeholderTextColor={Colors.muted} value={prodNome} onChangeText={setProdNome} />
-              <Text style={styles.fieldLabel}>Descrição</Text>
-              <TextInput style={[styles.payInput, { height: 80, textAlignVertical: "top" }]} placeholder="Descreva seu produto..." placeholderTextColor={Colors.muted} value={prodDesc} onChangeText={setProdDesc} multiline />
-              <Text style={styles.fieldLabel}>Preço *</Text>
-              <TextInput style={styles.payInput} placeholder="Ex: R$ 97" placeholderTextColor={Colors.muted} value={prodPreco} onChangeText={setProdPreco} />
-              <Text style={styles.fieldLabel}>Categoria *</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }} contentContainerStyle={{ gap: 8 }}>
-                {STORE_CATS.map((c) => (
-                  <Pressable key={c} onPress={() => setProdCat(c)} style={[styles.catChip, prodCat === c && styles.catChipAtivo]}>
-                    <Text style={[styles.catChipText, prodCat === c && styles.catChipTextAtivo]}>{c}</Text>
+          <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-end" }}>
+            <View style={[styles.modal, { backgroundColor: isDark ? Colors.card : "#fff" }]}>
+              <Text style={[styles.modalTitle, { color: textColor }]}>Publicar Produto</Text>
+              <TextInput style={[styles.modalInput, { backgroundColor: inputBg, color: textColor, borderColor }]} placeholder="Nome do produto" placeholderTextColor={textSec} value={prodNome} onChangeText={setProdNome} />
+              <TextInput style={[styles.modalInput, { backgroundColor: inputBg, color: textColor, borderColor, minHeight: 80 }]} placeholder="Descrição" placeholderTextColor={textSec} multiline value={prodDesc} onChangeText={setProdDesc} textAlignVertical="top" />
+              <TextInput style={[styles.modalInput, { backgroundColor: inputBg, color: textColor, borderColor }]} placeholder="Preço (ex: R$ 97)" placeholderTextColor={textSec} value={prodPreco} onChangeText={setProdPreco} />
+              <Text style={[styles.modalLabel, { color: textSec }]}>Categoria</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+                {["Programa", "Audiobook", "E-book", "Curso", "Artigo"].map(cat => (
+                  <Pressable key={cat} onPress={() => setProdCategoria(cat)} style={[styles.modalChip, { borderColor: prodCategoria === cat ? Colors.gold : borderColor, backgroundColor: prodCategoria === cat ? Colors.gold + "22" : "transparent" }]}>
+                    <Text style={[styles.modalChipText, { color: prodCategoria === cat ? Colors.gold : textSec }]}>{cat}</Text>
                   </Pressable>
                 ))}
               </ScrollView>
-              <Text style={styles.fieldLabel}>Contato (WhatsApp, email, etc.)</Text>
-              <TextInput style={styles.payInput} placeholder="Como o comprador pode te contatar" placeholderTextColor={Colors.muted} value={prodContato} onChangeText={setProdContato} />
-              <Pressable onPress={handleEnviarProduto} disabled={enviandoProd || !prodNome.trim() || !prodPreco.trim()} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }, { marginTop: 8 }]}>
-                <LinearGradient colors={prodNome.trim() && prodPreco.trim() ? [Colors.goldDark, Colors.gold] : [Colors.border, Colors.border]} style={styles.modalBtn}>
-                  {enviandoProd ? <ActivityIndicator size="small" color={Colors.black} /> : <Text style={[styles.modalBtnText, (!prodNome.trim() || !prodPreco.trim()) && { color: Colors.muted }]}>Enviar para Revisão</Text>}
-                </LinearGradient>
-              </Pressable>
-            </ScrollView>
-          </View>
+              <TextInput style={[styles.modalInput, { backgroundColor: inputBg, color: textColor, borderColor }]} placeholder="Contato/Link (WhatsApp, email...)" placeholderTextColor={textSec} value={prodContato} onChangeText={setProdContato} />
+              <View style={{ flexDirection: "row", gap: 12, marginTop: 8 }}>
+                <Pressable onPress={() => setShowSellModal(false)} style={[styles.modalCancelBtn, { borderColor }]}>
+                  <Text style={[styles.modalCancelText, { color: textSec }]}>Cancelar</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => { if (!prodNome || !prodPreco) return; addProductMutation.mutate({ name: prodNome, description: prodDesc, price: prodPreco, category: prodCategoria, contact: prodContato }); }}
+                  style={[styles.modalConfirmBtn, { backgroundColor: Colors.gold }]}
+                  disabled={addProductMutation.isPending}
+                >
+                  {addProductMutation.isPending ? <ActivityIndicator size="small" color="#000" /> : <Text style={styles.modalConfirmText}>Publicar</Text>}
+                </Pressable>
+              </View>
+            </View>
+          </ScrollView>
         </View>
       </Modal>
     </View>
@@ -637,97 +402,82 @@ export default function LojaScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.black },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: Colors.border },
-  pageTitle: { fontFamily: "Outfit_800ExtraBold", fontSize: 26, color: Colors.text, letterSpacing: -0.5, marginBottom: 2 },
-  pageSubtitle: { fontFamily: "Outfit_400Regular", fontSize: 13, color: Colors.textSecondary },
-  planBadge: { backgroundColor: "rgba(212,175,55,0.12)", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: "rgba(212,175,55,0.25)" },
-  planBadgeText: { fontFamily: "Outfit_600SemiBold", fontSize: 12, color: Colors.gold },
-  catScroll: { paddingVertical: 12 },
-  catTab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.border },
-  catTabAtiva: { backgroundColor: "rgba(212,175,55,0.15)", borderColor: "rgba(212,175,55,0.35)" },
-  catText: { fontFamily: "Outfit_500Medium", fontSize: 13, color: Colors.muted },
-  catTextAtivo: { fontFamily: "Outfit_700Bold", color: Colors.gold },
-  catDesc: { fontFamily: "Outfit_400Regular", fontSize: 13, color: Colors.textSecondary, marginBottom: 16, lineHeight: 20 },
-  scroll: { paddingHorizontal: 20, paddingTop: 4 },
-  toggleRow: { flexDirection: "row", backgroundColor: Colors.card, borderRadius: 14, padding: 4, marginBottom: 20, borderWidth: 1, borderColor: Colors.border },
-  toggleBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 10, borderRadius: 11 },
-  toggleActive: { backgroundColor: "rgba(212,175,55,0.15)" },
-  toggleText: { fontFamily: "Outfit_600SemiBold", fontSize: 13, color: Colors.muted },
-  toggleTextActive: { color: Colors.gold },
-  descontoBadge: { backgroundColor: "rgba(74,222,128,0.2)", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 },
-  descontoText: { fontFamily: "Outfit_700Bold", fontSize: 10, color: "#4ADE80" },
-  planoWrapper: { marginBottom: 14 },
-  tagInlineRow: { flexDirection: "row", marginBottom: 4 },
-  tagInline: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, borderWidth: 1 },
-  tagInlineText: { fontFamily: "Outfit_700Bold", fontSize: 10, letterSpacing: 0.5 },
-  planoCard: { borderRadius: 22, padding: 20, borderWidth: 1 },
-  planoNome: { fontFamily: "Outfit_800ExtraBold", fontSize: 20, letterSpacing: -0.5, marginBottom: 8 },
-  adminOnlyBox: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(212,175,55,0.08)", borderRadius: 12, padding: 12, marginBottom: 4 },
-  adminOnlyText: { fontFamily: "Outfit_500Medium", fontSize: 12, color: Colors.gold, flex: 1, lineHeight: 18 },
-  planoPrecoRow: { flexDirection: "row", alignItems: "baseline", gap: 8, marginBottom: 4 },
-  planoPreco: { fontFamily: "Outfit_800ExtraBold", fontSize: 26, letterSpacing: -0.5 },
-  planoParcelado: { fontFamily: "Outfit_400Regular", fontSize: 13, color: Colors.muted },
-  divisor: { height: 1, backgroundColor: Colors.border, marginVertical: 14 },
-  recursoRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
-  recursoText: { fontFamily: "Outfit_400Regular", fontSize: 13, color: Colors.text, flex: 1, lineHeight: 18 },
-  planoBtn: { paddingVertical: 15, borderRadius: 14, alignItems: "center" },
-  planoBtnText: { fontFamily: "Outfit_700Bold", fontSize: 15, color: Colors.black },
-  garantiaCard: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: Colors.card, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: Colors.border, marginBottom: 8 },
-  garantiaText: { flex: 1 },
-  garantiaTitulo: { fontFamily: "Outfit_600SemiBold", fontSize: 14, color: Colors.text, marginBottom: 3 },
-  garantiaSub: { fontFamily: "Outfit_400Regular", fontSize: 12, color: Colors.textSecondary, lineHeight: 18 },
-  prodCard: { flexDirection: "row", alignItems: "center", backgroundColor: Colors.card, borderRadius: 16, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: Colors.border, gap: 12 },
-  prodIconBox: { width: 48, height: 48, borderRadius: 14, backgroundColor: "rgba(212,175,55,0.1)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(212,175,55,0.2)" },
-  prodInfo: { flex: 1 },
-  prodNome: { fontFamily: "Outfit_600SemiBold", fontSize: 14, color: Colors.text, marginBottom: 4 },
-  prodDesc: { fontFamily: "Outfit_400Regular", fontSize: 11, color: Colors.muted, marginTop: 2 },
-  prodMetaRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  prodNivel: { fontFamily: "Outfit_400Regular", fontSize: 11, color: Colors.muted },
-  prodRating: { flexDirection: "row", alignItems: "center", gap: 3 },
-  prodRatingText: { fontFamily: "Outfit_500Medium", fontSize: 11, color: Colors.gold },
-  prodPreco: { fontFamily: "Outfit_700Bold", fontSize: 14, color: Colors.gold },
-  sectionLabel: { fontFamily: "Outfit_700Bold", fontSize: 16, color: Colors.text, marginBottom: 12, marginTop: 4 },
-  venderInfoCard: { borderRadius: 22, padding: 20, borderWidth: 1, borderColor: "rgba(212,175,55,0.2)", alignItems: "center", marginBottom: 20 },
-  venderTitle: { fontFamily: "Outfit_800ExtraBold", fontSize: 20, color: Colors.gold, marginBottom: 8 },
-  venderDesc: { fontFamily: "Outfit_400Regular", fontSize: 13, color: Colors.textSecondary, textAlign: "center", lineHeight: 20, marginBottom: 16 },
-  lockVender: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(212,175,55,0.08)", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: "rgba(212,175,55,0.15)" },
-  lockVenderText: { fontFamily: "Outfit_500Medium", fontSize: 12, color: Colors.gold },
-  venderBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 14, borderRadius: 16, width: "100%" },
-  venderBtnText: { fontFamily: "Outfit_700Bold", fontSize: 15, color: Colors.black },
-  emptyBox: { alignItems: "center", paddingVertical: 40, gap: 8 },
-  emptyText: { fontFamily: "Outfit_500Medium", fontSize: 13, color: Colors.muted },
-  fieldLabel: { fontFamily: "Outfit_600SemiBold", fontSize: 13, color: Colors.textSecondary, marginBottom: 8, marginTop: 4 },
-  venderLegal: { fontFamily: "Outfit_400Regular", fontSize: 12, color: Colors.muted, lineHeight: 18, marginBottom: 16, backgroundColor: "rgba(212,175,55,0.06)", borderRadius: 10, padding: 12, borderWidth: 1, borderColor: "rgba(212,175,55,0.15)" },
-  catChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.border },
-  catChipAtivo: { backgroundColor: "rgba(212,175,55,0.15)", borderColor: "rgba(212,175,55,0.4)" },
-  catChipText: { fontFamily: "Outfit_500Medium", fontSize: 12, color: Colors.muted },
-  catChipTextAtivo: { color: Colors.gold, fontFamily: "Outfit_600SemiBold" },
+  root: { flex: 1 },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingBottom: 12, borderBottomWidth: 1 },
+  title: { fontFamily: "Outfit_800ExtraBold", fontSize: 26 },
+  subtitle: { fontFamily: "Outfit_400Regular", fontSize: 13, marginTop: 2 },
+  planBadge: { flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderRadius: 16, paddingHorizontal: 10, paddingVertical: 6 },
+  planBadgeText: { fontFamily: "Outfit_600SemiBold", fontSize: 12 },
+  tabScroll: { borderBottomWidth: 1, paddingVertical: 10, maxHeight: 54 },
+  tabBtn: { flexDirection: "row", alignItems: "center", gap: 5, borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
+  tabText: { fontFamily: "Outfit_600SemiBold", fontSize: 12 },
+  sectionTitle: { fontFamily: "Outfit_700Bold", fontSize: 18, marginBottom: 6 },
+  sectionSub: { fontFamily: "Outfit_400Regular", fontSize: 13, marginBottom: 16, lineHeight: 19 },
+  planoCard: { borderRadius: 16, padding: 16, marginBottom: 12, overflow: "hidden" },
+  planoNome: { fontFamily: "Outfit_800ExtraBold", fontSize: 20 },
+  planoTag: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
+  planoTagText: { fontFamily: "Outfit_700Bold", fontSize: 11 },
+  planoPrecoMensal: { fontFamily: "Outfit_700Bold", fontSize: 22, marginTop: 8 },
+  planoPrecoAnual: { fontFamily: "Outfit_400Regular", fontSize: 13, marginTop: 2 },
+  planoRecurso: { fontFamily: "Outfit_400Regular", fontSize: 13 },
+  assinBtn: { borderRadius: 12, paddingVertical: 12, alignItems: "center", marginTop: 16 },
+  assinBtnText: { color: "#000", fontFamily: "Outfit_700Bold", fontSize: 14 },
+  pgtoCard: { borderRadius: 14, padding: 14, borderWidth: 1, marginTop: 8, marginBottom: 8 },
+  pgtoTitle: { fontFamily: "Outfit_700Bold", fontSize: 14, marginBottom: 12 },
+  pgtoRow: { flexDirection: "row", justifyContent: "space-around" },
+  pgtoItem: { alignItems: "center", gap: 4, borderWidth: 1, borderRadius: 10, padding: 10, flex: 1, marginHorizontal: 3 },
+  pgtoLabel: { fontFamily: "Outfit_400Regular", fontSize: 10, textAlign: "center" },
+  tipoChip: { borderWidth: 1, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 7, marginRight: 8 },
+  tipoChipText: { fontFamily: "Outfit_600SemiBold", fontSize: 13 },
+  prodCard: { flexDirection: "row", borderRadius: 14, padding: 12, borderWidth: 1, marginBottom: 10, alignItems: "center" },
+  prodIcon: { width: 48, height: 48, borderRadius: 24, justifyContent: "center", alignItems: "center" },
+  prodNome: { fontFamily: "Outfit_600SemiBold", fontSize: 14 },
+  prodAutor: { fontFamily: "Outfit_400Regular", fontSize: 12 },
+  tipoTag: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 },
+  tipoTagText: { fontFamily: "Outfit_600SemiBold", fontSize: 10 },
+  prodAvaliacao: { fontFamily: "Outfit_400Regular", fontSize: 12 },
+  prodPreco: { fontFamily: "Outfit_700Bold", fontSize: 15, marginBottom: 6 },
+  comprarBtn: { borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
+  comprarBtnText: { color: "#000", fontFamily: "Outfit_700Bold", fontSize: 12 },
+  academicCard: { borderRadius: 14, padding: 14, borderWidth: 1.5, marginBottom: 16, overflow: "hidden" },
+  academicTitle: { fontFamily: "Outfit_700Bold", fontSize: 16, flex: 1 },
+  proTag: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+  proTagText: { fontFamily: "Outfit_700Bold", fontSize: 11 },
+  academicDesc: { fontFamily: "Outfit_400Regular", fontSize: 13, lineHeight: 19 },
+  featureTag: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+  featureTagText: { fontFamily: "Outfit_500Medium", fontSize: 11 },
+  mentorCard: { flexDirection: "row", borderRadius: 14, padding: 12, borderWidth: 1, marginBottom: 10, alignItems: "center" },
+  mentorAvatar: { width: 48, height: 48, borderRadius: 24, justifyContent: "center", alignItems: "center" },
+  mentorNome: { fontFamily: "Outfit_700Bold", fontSize: 14 },
+  mentorBadge: { borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 },
+  mentorBadgeText: { fontFamily: "Outfit_700Bold", fontSize: 10 },
+  mentorEsp: { fontFamily: "Outfit_400Regular", fontSize: 12 },
+  mentorMeta: { fontFamily: "Outfit_400Regular", fontSize: 12 },
+  mentorPreco: { fontFamily: "Outfit_700Bold", fontSize: 14, marginBottom: 6 },
+  contratarBtn: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
+  contratarBtnText: { fontFamily: "Outfit_600SemiBold", fontSize: 12 },
+  tornarseMentorBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1.5, borderRadius: 14, paddingVertical: 14, marginTop: 8 },
+  tornarseMentorText: { fontFamily: "Outfit_700Bold", fontSize: 15 },
+  sellInfoCard: { borderRadius: 14, borderWidth: 1, marginBottom: 16, overflow: "hidden" },
+  prodTypeRow: { flexDirection: "row", alignItems: "center", padding: 14 },
+  prodTypeIcon: { width: 40, height: 40, borderRadius: 20, justifyContent: "center", alignItems: "center" },
+  prodTypeNome: { fontFamily: "Outfit_600SemiBold", fontSize: 14 },
+  prodTypeDesc: { fontFamily: "Outfit_400Regular", fontSize: 12, marginTop: 2 },
+  publishBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 14, paddingVertical: 14 },
+  publishBtnText: { color: "#000", fontFamily: "Outfit_700Bold", fontSize: 15 },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "flex-end" },
-  modalCard: { backgroundColor: Colors.card, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, borderTopWidth: 1, borderColor: Colors.border, paddingBottom: 40 },
-  modalHeader: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20, gap: 12 },
-  modalTitle: { fontFamily: "Outfit_700Bold", fontSize: 20, color: Colors.text, flex: 1 },
-  modalSubtitle: { fontFamily: "Outfit_400Regular", fontSize: 14, color: Colors.gold, marginTop: 2 },
-  stepLabel: { fontFamily: "Outfit_600SemiBold", fontSize: 14, color: Colors.textSecondary, marginBottom: 14 },
-  metodoCard: { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: Colors.black, borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: Colors.border },
-  metodoCardAtivo: { borderColor: "rgba(212,175,55,0.4)", backgroundColor: "rgba(212,175,55,0.06)" },
-  metodoIcon: { width: 44, height: 44, borderRadius: 13, backgroundColor: Colors.card, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: Colors.border },
-  metodoIconAtivo: { borderColor: "rgba(212,175,55,0.3)", backgroundColor: "rgba(212,175,55,0.1)" },
-  metodoInfo: { flex: 1 },
-  metodoLabel: { fontFamily: "Outfit_600SemiBold", fontSize: 14, color: Colors.text, marginBottom: 2 },
-  metodoSub: { fontFamily: "Outfit_400Regular", fontSize: 12, color: Colors.muted },
-  modalBtn: { paddingVertical: 15, borderRadius: 14, alignItems: "center" },
-  modalBtnText: { fontFamily: "Outfit_700Bold", fontSize: 15, color: Colors.black },
-  pixBox: { alignItems: "center" },
-  pixQr: { width: 140, height: 140, borderRadius: 20, backgroundColor: "rgba(212,175,55,0.1)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(212,175,55,0.2)", marginBottom: 16 },
-  pixKey: { fontFamily: "Outfit_600SemiBold", fontSize: 14, color: Colors.gold, marginBottom: 10 },
-  pixInstr: { fontFamily: "Outfit_400Regular", fontSize: 12, color: Colors.textSecondary, textAlign: "center", lineHeight: 18, marginBottom: 4 },
-  redirectBox: { alignItems: "center", paddingVertical: 10 },
-  redirectTitle: { fontFamily: "Outfit_700Bold", fontSize: 18, color: Colors.text, marginBottom: 10 },
-  redirectSub: { fontFamily: "Outfit_400Regular", fontSize: 13, color: Colors.textSecondary, textAlign: "center", lineHeight: 20 },
-  successBox: { alignItems: "center", paddingVertical: 20 },
-  successIcon: { width: 80, height: 80, borderRadius: 24, alignItems: "center", justifyContent: "center", marginBottom: 20 },
-  successTitle: { fontFamily: "Outfit_800ExtraBold", fontSize: 22, color: Colors.text, marginBottom: 10 },
-  successSub: { fontFamily: "Outfit_400Regular", fontSize: 14, color: Colors.textSecondary, textAlign: "center", lineHeight: 20, paddingHorizontal: 10 },
-  payInput: { backgroundColor: Colors.black, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1, borderColor: Colors.border, fontFamily: "Outfit_400Regular", fontSize: 14, color: Colors.text, marginBottom: 12 },
+  modal: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 40 },
+  modalTitle: { fontFamily: "Outfit_700Bold", fontSize: 18, marginBottom: 16 },
+  modalInput: { borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontFamily: "Outfit_400Regular", fontSize: 14, borderWidth: 1, marginBottom: 12 },
+  modalLabel: { fontFamily: "Outfit_600SemiBold", fontSize: 13, marginBottom: 8 },
+  modalChip: { borderWidth: 1, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6, marginRight: 8 },
+  modalChipText: { fontFamily: "Outfit_500Medium", fontSize: 13 },
+  modalCancelBtn: { flex: 1, borderWidth: 1, borderRadius: 12, paddingVertical: 12, alignItems: "center" },
+  modalCancelText: { fontFamily: "Outfit_600SemiBold", fontSize: 14 },
+  modalConfirmBtn: { flex: 2, borderRadius: 12, paddingVertical: 12, alignItems: "center" },
+  modalConfirmText: { color: "#000", fontFamily: "Outfit_700Bold", fontSize: 14 },
+  checkoutPlan: { fontFamily: "Outfit_800ExtraBold", fontSize: 22, marginBottom: 4 },
+  checkoutPreco: { fontFamily: "Outfit_700Bold", fontSize: 18, marginBottom: 16 },
+  pgtoOption: { flexDirection: "row", alignItems: "center", gap: 12, borderRadius: 12, padding: 14, borderWidth: 1, marginBottom: 10 },
+  pgtoOptionText: { fontFamily: "Outfit_500Medium", fontSize: 15 },
 });

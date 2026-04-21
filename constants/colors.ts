@@ -11,6 +11,15 @@ const TEXT_SECONDARY = "#A1A1AA";
 const NAVY = "#0F2044";
 const NAVY_LIGHT = "#1B3460";
 
+// Light mode
+const LIGHT_BG = "#F5F5F7";
+const LIGHT_CARD = "#FFFFFF";
+const LIGHT_CARD_ELEVATED = "#FAFAFA";
+const LIGHT_BORDER = "#E5E5EA";
+const LIGHT_MUTED = "#8E8E93";
+const LIGHT_TEXT = "#1C1C1E";
+const LIGHT_TEXT_SECONDARY = "#48484A";
+
 export default {
   gold: GOLD,
   goldLight: GOLD_LIGHT,
@@ -24,11 +33,39 @@ export default {
   textSecondary: TEXT_SECONDARY,
   navy: NAVY,
   navyLight: NAVY_LIGHT,
-  light: {
+  // Light mode colors
+  lightBg: LIGHT_BG,
+  lightCard: LIGHT_CARD,
+  lightCardElevated: LIGHT_CARD_ELEVATED,
+  lightBorder: LIGHT_BORDER,
+  lightMuted: LIGHT_MUTED,
+  lightText: LIGHT_TEXT,
+  lightTextSecondary: LIGHT_TEXT_SECONDARY,
+  // Theme objects
+  dark: {
+    bg: BLACK,
+    card: CARD,
+    cardElevated: CARD_ELEVATED,
+    border: BORDER,
+    muted: MUTED,
     text: TEXT,
-    background: BLACK,
+    textSecondary: TEXT_SECONDARY,
+    tabBar: BLACK,
     tint: GOLD,
     tabIconDefault: MUTED,
     tabIconSelected: GOLD,
+  },
+  light: {
+    bg: LIGHT_BG,
+    card: LIGHT_CARD,
+    cardElevated: LIGHT_CARD_ELEVATED,
+    border: LIGHT_BORDER,
+    muted: LIGHT_MUTED,
+    text: LIGHT_TEXT,
+    textSecondary: LIGHT_TEXT_SECONDARY,
+    tabBar: LIGHT_CARD,
+    tint: GOLD_DARK,
+    tabIconDefault: LIGHT_MUTED,
+    tabIconSelected: GOLD_DARK,
   },
 };

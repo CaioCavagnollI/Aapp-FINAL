@@ -1,149 +1,114 @@
-# Nexus — A Plataforma Científica do Treinamento de Força
+# Nexus Atlas — Plataforma Científica do Treinamento de Força
 
 **Powered by Atlas IA**
 
 ## Identidade
-- **Nome**: Nexus
+- **Nome**: Nexus Atlas
 - **Slogan**: A Plataforma Científica do Treinamento de Força
-- **Subtítulo**: Powered by Atlas IA
-- **IA**: Atlas IA (GPT-4.1 streaming)
+- **IA**: Atlas IA (GPT-4 streaming via OpenAI)
 
 ## Stack
-- **Frontend**: Expo (React Native) + Expo Router — arquivo base em `app/`
-- **Backend**: Express + TypeScript em `server/`
-- **Banco de Dados**: PostgreSQL via `DATABASE_URL` — 9 tabelas (users, programs, exercises, sessions, session_exercises, clients, prescriptions, scans, user_files)
-- **Auth usuário**: JWT (30d), bcryptjs — rotas `/api/auth/*`
+- **Frontend**: Expo (React Native) + Expo Router — `app/`
+- **Backend**: Express + TypeScript — `server/`
+- **Banco de Dados**: PostgreSQL via `DATABASE_URL`
+- **Auth usuário**: JWT (30d), bcryptjs — `/api/auth/*`
 - **Auth admin**: HMAC token via `/api/admin/login`
 - **Storage**: PostgreSQL persistente (`server/storage.ts`)
 - **Schema**: `server/db.ts` + `server/storage.ts`
 - **Fontes**: Outfit (300–800) via `@expo-google-fonts/outfit`
+- **Temas**: Light/Dark mode via `ThemeContext.tsx` (AsyncStorage persistente)
 
 ## Design — Paleta Oficial
 | Token | Valor | Uso |
 |---|---|---|
 | `gold` | `#D4AF37` | Accent principal |
 | `goldDark` | `#A8892B` | Gradiente escuro |
-| `goldLight` | `#E8CC6A` | Destaque suave |
-| `black` | `#0B0B0C` | Fundo base |
-| `card` | `#111113` | Cards |
-| `cardElevated` | `#18181A` | Cards elevados |
-| `border` | `#232327` | Bordas |
-| `muted` | `#6B6B75` | Texto secundário |
-| `text` | `#FFFFFF` | Texto principal |
-| `textSecondary` | `#A1A1AA` | Texto de suporte |
-
-## Estrutura de Arquivos (Canônica)
-
-```
-app/
-  _layout.tsx              # Root layout — providers, fonts, AuthGuard
-  (tabs)/
-    _layout.tsx            # 7 abas: Hoje, Treino, Atlas, Scanner, Prescrever, Loja, Perfil
-    index.tsx              # Aba Hoje — stats reais da API /api/stats
-    treino.tsx             # Aba Treino — programas e sessões reais do banco
-    atlas.tsx              # Aba Atlas — Atlas IA chat streaming
-    scanner.tsx            # Aba Scanner — câmera nativa + análise nutricional IA
-    prescrever.tsx         # Aba Prescrever — clientes reais + geração IA streaming
-    loja.tsx               # Aba Loja — Starter 19/190, Pro 99/990, Vitalício (admin)
-    perfil.tsx             # Aba Perfil — dados reais, plano, admin badge
-  (admin)/
-    _layout.tsx            # Admin layout
-    index.tsx              # Painel admin
-    login.tsx              # Login admin (sincroniza AuthContext)
-  (auth)/
-    _layout.tsx            # Auth layout
-    index.tsx              # Login/registro de usuário
-
-contexts/
-  AuthContext.tsx          # JWT auth — user, plan, is_admin, isPro, isVitalicio
-  AdminContext.tsx         # Auth admin — login retorna userToken p/ AuthContext
-
-server/
-  db.ts                    # Conexão PostgreSQL + 8 tabelas DDL
-  storage.ts               # CRUD completo para todas entidades
-  routes.ts                # REST APIs: auth, stats, programs, sessions, clients,
-                           #   prescriptions (+ streaming IA), scans, admin
-  index.ts                 # Express setup
-  templates/landing-page.html
-
-lib/
-  query-client.ts          # React Query + fetcher + getApiUrl()
-```
+| `black` | `#0B0B0C` | Fundo base (dark) |
+| `lightBg` | `#F5F5F7` | Fundo base (light) |
+| `card` | `#111113` | Cards (dark) |
+| `lightCard` | `#FFFFFF` | Cards (light) |
 
 ## Credenciais Admin
 - **Login**: `admin@nexus221177`
 - **Senha**: `admin2211777_`
 - Plano: `vitalicio`, `is_admin: true`
-- Overrideable por `ADMIN_USERNAME` / `ADMIN_PASSWORD` env vars
+
+## Estrutura de Abas (5+1)
+```
+(tabs)/
+  _layout.tsx        # 5 tabs visíveis + hidden routes
+  index.tsx          # Dashboard — stats, main pages, quick access, insights
+  atlas.tsx          # Atlas Brain — 4 sub-seções
+  scanner.tsx        # Scanner — câmera + análise IA
+  meus-treinos.tsx   # Meus Treinos — 4 abas (Programas/Sessões/Exercícios/Prescrições)
+  loja.tsx           # Atlas Store — Planos/Produtos/Mentores/Vender
+  perfil.tsx         # Perfil — stats, configurações, toggle de tema (hidden)
+  uploads.tsx        # Arquivos — 6 pastas: Geral/IA-RAG/Atlas Market/Scanner/Editorial/Acadêmico (hidden)
+```
+
+## Atlas Brain (atlas.tsx) — 4 Sub-Seções
+1. **Atlas Acadêmico**: Chat IA streaming + Busca CrossRef/PubMed + Análise acadêmica
+2. **Prescrição Atlas**: Anamnese com múltiplos chips → AI gera prescrição → salva no banco
+3. **Atlas Tools**: TMB/TDEE (Mifflin-St Jeor), 1RM (Epley), Macros, TSS, RPE/RIR, Periodização, Dose-Resposta, Centro de Pesquisa
+4. **Acervo Atlas**: Editoriais científicos categorizados
+
+## Meus Treinos (meus-treinos.tsx) — 4 Abas
+1. **Programas**: CRUD completo de programas de treino com ativação
+2. **Sessões**: Registro de sessões com duração
+3. **Exercícios**: Biblioteca com 20 exercícios pré-carregados, filtro por músculo/busca + detalhes
+4. **Prescrições**: Prescrições geradas pela IA com conteúdo completo
+
+## Atlas Store (loja.tsx) — 4 Abas
+1. **Planos**: Free / Starter / Pro / Vitalício com checkout modal (Cartão/Pix/PayPal)
+2. **Produtos**: Programas, Audiobooks, E-books, Cursos, Artigos — filtro por tipo
+3. **Mentores Atlas**: Mentores verificados + card Orientação Acadêmica (DOCX/patches/tradução)
+4. **Vender**: Publicar produtos na plataforma
+
+## Arquivos (uploads.tsx) — 6 Pastas
+- Geral · IA/RAG · Atlas Market · Scanner · Editorial · Acadêmico
+- Suporte: PDF, DOCX, TXT, PNG, JPG, MP3, MP4
+- Folder salvo no banco (coluna `folder` em `user_files`)
+
+## API Endpoints Principais
+```
+POST   /api/auth/login          # Login usuário
+POST   /api/auth/register       # Registro
+GET    /api/stats               # Stats do usuário
+GET    /api/programs            # Programas
+POST   /api/programs            # Criar programa
+PUT    /api/programs/:id/activate
+DELETE /api/programs/:id
+GET    /api/sessions            # Sessões
+POST   /api/sessions            # Criar sessão
+GET    /api/exercises           # Biblioteca de exercícios (20 pré-carregados)
+GET    /api/prescriptions       # Prescrições
+POST   /api/prescriptions/generate  # Gerar prescrição com IA (streaming)
+GET    /api/store/products      # Produtos aprovados
+POST   /api/store/products      # Publicar produto
+GET    /api/user/files          # Listar arquivos (com folder)
+POST   /api/user/upload         # Upload de arquivo (com folder)
+DELETE /api/user/files/:id
+GET    /api/research/pubmed     # Busca PubMed
+GET    /api/research/crossref   # Busca CrossRef
+GET    /api/research/openalex   # Busca OpenAlex
+POST   /api/payments/create-checkout  # Stripe checkout
+POST   /api/payments/pix        # Gerar Pix
+POST   /api/admin/login         # Login admin
+GET    /api/admin/users         # Admin: listar usuários
+GET    /api/admin/metrics       # Admin: métricas
+```
 
 ## Planos de Assinatura
 | Plano | Mensal | Anual | Acesso |
 |---|---|---|---|
-| Starter | R$ 19/mês | R$ 190/ano | Atlas IA básico, 5 clientes |
-| Pro Nexus | R$ 99/mês | R$ 990/ano | Atlas IA avançado, 20 clientes |
-| Vitalício Nexus | — | — | Admin exclusivo, tudo ilimitado |
+| free | - | - | Básico |
+| starter_monthly | R$ 29 | - | Atlas Brain + Scanner |
+| starter_annual | - | R$ 249 | Starter anual |
+| pro_monthly | R$ 59 | - | Tudo + Mentores + Acadêmico |
+| pro_annual | - | R$ 499 | Pro anual |
+| vitalicio | - | R$ 997 | Acesso vitalício |
 
-## Portas
-- **Frontend (Expo)**: 8081
-- **Backend (Express)**: 5000
-
-## Variáveis de Ambiente Relevantes
-| Variável | Uso |
-|---|---|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `AI_INTEGRATIONS_OPENAI_API_KEY` | OpenAI via integração Replit |
-| `AI_INTEGRATIONS_OPENAI_BASE_URL` | Base URL OpenAI |
-| `JWT_SECRET` | Secret JWT |
-| `ADMIN_USERNAME` | Override usuário admin |
-| `ADMIN_PASSWORD` | Override senha admin |
-
-## API Routes
-
-### Auth
-- `POST /api/auth/register` — cria usuário
-- `POST /api/auth/login` — login usuário, retorna JWT + user (com plan/is_admin)
-- `GET /api/auth/me` — retorna usuário autenticado
-- `PATCH /api/auth/plan` — atualiza plano do usuário
-
-### Stats
-- `GET /api/stats` — estatísticas do usuário (sessões, volume, sequência, prescrições)
-
-### Programas
-- `GET /api/programs` — lista programas do usuário
-- `POST /api/programs` — cria programa
-
-### Sessões
-- `GET /api/sessions` — lista sessões do usuário
-- `POST /api/sessions` — registra sessão
-
-### Clientes
-- `GET /api/clients` — lista clientes
-- `POST /api/clients` — adiciona cliente
-
-### Prescrições
-- `GET /api/prescriptions` — lista prescrições
-- `POST /api/prescriptions` — salva prescrição
-- `POST /api/prescriptions/generate` — geração streaming com Atlas IA
-
-### Scans
-- `GET /api/scans` — histórico de scans
-- `POST /api/scans` — analisa produto com IA
-
-### Admin (requer x-admin-token)
-- `POST /api/admin/login` — autentica, retorna token + userToken JWT
-- `GET /api/admin/files` — lista arquivos
-- `POST /api/admin/upload` — upload (multer, max 50MB)
-- `DELETE /api/admin/files/:filename` — exclui arquivo
-
-## AsyncStorage Keys
-- `nexusatlas_auth_token` — JWT do usuário
-- `nexusatlas_auth_user` — objeto User serializado
-- `nexusatlas_admin_token` — token HMAC do admin
-
-## RevenueCat (PENDENTE)
-- Integração RevenueCat foi recusada pelo usuário
-- Pacotes instalados: `react-native-purchases`, `@replit/revenuecat-sdk`
-- Para configurar: o usuário precisa autorizar a integração RevenueCat no Replit
-- Tela Loja mostra preços corretos mas checkout mostra mensagem "em breve"
-- Para retomar: ler `.local/skills/revenuecat/SKILL.md` e executar seed script
-- NOTA: NÃO usar Stripe — RevenueCat é o método correto para app mobile
+## Tabelas do Banco
+- users · programs · sessions · session_exercises · clients · prescriptions
+- scans · user_files (+ folder) · store_products · trainer_profiles
+- exercises · atlas_library
