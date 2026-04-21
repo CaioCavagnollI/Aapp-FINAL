@@ -235,13 +235,14 @@ export default function AdminIndexScreen() {
               { label: "Usuários", icon: "people-outline", color: "#60A5FA", route: "/(admin)/usuarios" as const },
               { label: "Moderação Loja", icon: "storefront-outline", color: "#F472B6", route: "/(admin)/loja-mod" as const },
               { label: "Integrações", icon: "extension-puzzle-outline", color: "#A78BFA", route: "/(admin)/integracoes" as const },
-              { label: "Upload Arquivos", icon: "cloud-upload-outline", color: Colors.gold, route: null as any },
+              { label: "Faturamento", icon: "card-outline", color: "#4ADE80", route: "/(admin)/faturamento" as const },
+              { label: "Arquivos", icon: "folder-open-outline", color: Colors.gold, route: "/(admin)/arquivos" as const },
             ].map((item) => (
               <Pressable
                 key={item.label}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  if (item.route) { router.push(item.route); } else { handleUpload(); }
+                  router.push(item.route);
                 }}
                 style={({ pressed }) => [styles.navCard, { opacity: pressed ? 0.85 : 1 }]}
               >

@@ -100,6 +100,19 @@ export async function initDb(): Promise<void> {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_files (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      filename TEXT NOT NULL,
+      original_name TEXT NOT NULL,
+      size BIGINT NOT NULL DEFAULT 0,
+      mime_type TEXT,
+      ext TEXT,
+      uploaded_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
 }
 
 export { pool };

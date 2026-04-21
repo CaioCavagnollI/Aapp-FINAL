@@ -9,6 +9,7 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -68,6 +69,17 @@ const EDITORIAIS = [
   { title: "RIR vs RPE: Guia prático completo", tag: "Intensidade", min: "6 min" },
 ];
 
+const RPE_TABLE = [
+  { rpe: "10", rir: "0", desc: "Máximo absoluto — sem repetições sobrando" },
+  { rpe: "9.5", rir: "0-1", desc: "Quase máximo — talvez 1 rep sobrando" },
+  { rpe: "9", rir: "1", desc: "Muito difícil — 1 repetição sobrando" },
+  { rpe: "8.5", rir: "1-2", desc: "Difícil — entre 1 e 2 reps sobrando" },
+  { rpe: "8", rir: "2", desc: "Moderado-alto — 2 repetições sobrando" },
+  { rpe: "7", rir: "3", desc: "Moderado — 3 repetições sobrando" },
+  { rpe: "6", rir: "4+", desc: "Leve — 4 ou mais repetições sobrando" },
+  { rpe: "5", rir: "5+", desc: "Aquecimento — muito confortável" },
+];
+
 function TypingIndicator() {
   const d1 = useSharedValue(0);
   const d2 = useSharedValue(0);
@@ -104,10 +116,310 @@ function Bubble({ msg }: { msg: Message }) {
   );
 }
 
+function LabCalculators({ botPad }: { botPad: number }) {
+  const [activeTool, setActiveTool] = useState<"volume" | "rm" | "imc" | "rpe">("volume");
+
+  const [volSets, setVolSets] = useState("");
+  const [volReps, setVolReps] = useState("");
+  const [volLoad, setVolLoad] = useState("");
+  const [volResult, setVolResult] = useState<string | null>(null);
+
+  const [rmWeight, setRmWeight] = useState("");
+  const [rmReps, setRmReps] = useState("");
+  const [rmResult, setRm1Result] = useState<number | null>(null);
+  const [rmPct, setRmPct] = useState("80");
+
+  const [imcWeight, setImcWeight] = useState("");
+  const [imcHeight, setImcHeight] = useState("");
+  const [imcResult, setImcResult] = useState<number | null>(null);
+
+  function calcVolume() {
+    const s = parseFloat(volSets);
+    const r = parseFloat(volReps);
+    const l = parseFloat(volLoad);
+    if (!s || !r || !l) { Alert.alert("Preencha todos os campos"); return; }
+    const total = s * r * l;
+    const perSet = r * l;
+    setVolResult(`Volume total: ${total.toFixed(0)} kg\nPor série: ${perSet.toFixed(0)} kg\nTotal de reps: ${(s * r).toFixed(0)}`);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }
+
+  function calc1RM() {
+    const w = parseFloat(rmWeight);
+    const r = parseFloat(rmReps);
+    if (!w || !r) { Alert.alert("Preencha peso e repetições"); return; }
+    const epley = w * (1 + r / 30);
+    const brzycki = w * (36 / (37 - r));
+    const avg = (epley + brzycki) / 2;
+    setRm1Result(avg);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }
+
+  function calcIMC() {
+    const w = parseFloat(imcWeight);
+    const h = parseFloat(imcHeight) / 100;
+    if (!w || !h) { Alert.alert("Preencha peso e altura"); return; }
+    const imc = w / (h * h);
+    setImcResult(imc);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }
+
+  function imcCategory(imc: number): { label: string; color: string } {
+    if (imc < 18.5) return { label: "Abaixo do peso", color: "#60A5FA" };
+    if (imc < 25) return { label: "Peso normal", color: "#4ADE80" };
+    if (imc < 30) return { label: "Sobrepeso", color: "#FBBF24" };
+    if (imc < 35) return { label: "Obesidade grau I", color: "#FB923C" };
+    if (imc < 40) return { label: "Obesidade grau II", color: "#F87171" };
+    return { label: "Obesidade grau III", color: "#EF4444" };
+  }
+
+  const tools = [
+    { id: "volume" as const, label: "Volume", icon: "layers-outline" },
+    { id: "rm" as const, label: "%1RM", icon: "barbell-outline" },
+    { id: "imc" as const, label: "IMC", icon: "body-outline" },
+    { id: "rpe" as const, label: "RPE", icon: "speedometer-outline" },
+  ];
+
+  return (
+    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[labStyles.scroll, { paddingBottom: botPad + 100 }]}>
+      <Animated.View entering={FadeInDown.delay(60).springify()}>
+        <View style={labStyles.toolBar}>
+          {tools.map((t) => (
+            <Pressable
+              key={t.id}
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setActiveTool(t.id); }}
+              style={[labStyles.toolBtn, activeTool === t.id && labStyles.toolBtnActive]}
+            >
+              <Ionicons name={t.icon as any} size={16} color={activeTool === t.id ? Colors.gold : Colors.muted} />
+              <Text style={[labStyles.toolLabel, activeTool === t.id && labStyles.toolLabelActive]}>{t.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </Animated.View>
+
+      {activeTool === "volume" && (
+        <Animated.View entering={FadeInDown.delay(80).springify()} style={labStyles.card}>
+          <View style={labStyles.cardHeader}>
+            <Ionicons name="layers-outline" size={20} color={Colors.gold} />
+            <Text style={labStyles.cardTitle}>Calculadora de Volume</Text>
+          </View>
+          <Text style={labStyles.cardDesc}>Calcule o volume total de treino por exercício ou sessão</Text>
+          <View style={labStyles.inputGroup}>
+            <View style={labStyles.inputItem}>
+              <Text style={labStyles.inputLabel}>Séries</Text>
+              <TextInput
+                style={labStyles.input}
+                value={volSets}
+                onChangeText={setVolSets}
+                keyboardType="numeric"
+                placeholder="Ex: 4"
+                placeholderTextColor={Colors.muted}
+              />
+            </View>
+            <View style={labStyles.inputItem}>
+              <Text style={labStyles.inputLabel}>Repetições</Text>
+              <TextInput
+                style={labStyles.input}
+                value={volReps}
+                onChangeText={setVolReps}
+                keyboardType="numeric"
+                placeholder="Ex: 8"
+                placeholderTextColor={Colors.muted}
+              />
+            </View>
+            <View style={labStyles.inputItem}>
+              <Text style={labStyles.inputLabel}>Carga (kg)</Text>
+              <TextInput
+                style={labStyles.input}
+                value={volLoad}
+                onChangeText={setVolLoad}
+                keyboardType="numeric"
+                placeholder="Ex: 100"
+                placeholderTextColor={Colors.muted}
+              />
+            </View>
+          </View>
+          <Pressable onPress={calcVolume} style={({ pressed }) => [labStyles.calcBtn, { opacity: pressed ? 0.8 : 1 }]}>
+            <LinearGradient colors={[Colors.goldDark, Colors.gold]} style={labStyles.calcBtnGrad}>
+              <Text style={labStyles.calcBtnText}>Calcular</Text>
+            </LinearGradient>
+          </Pressable>
+          {volResult && (
+            <Animated.View entering={FadeIn.duration(300)} style={labStyles.resultBox}>
+              {volResult.split("\n").map((line, i) => (
+                <Text key={i} style={[labStyles.resultText, i === 0 && labStyles.resultMain]}>{line}</Text>
+              ))}
+            </Animated.View>
+          )}
+        </Animated.View>
+      )}
+
+      {activeTool === "rm" && (
+        <Animated.View entering={FadeInDown.delay(80).springify()} style={labStyles.card}>
+          <View style={labStyles.cardHeader}>
+            <Ionicons name="barbell-outline" size={20} color={Colors.gold} />
+            <Text style={labStyles.cardTitle}>Calculadora de %1RM</Text>
+          </View>
+          <Text style={labStyles.cardDesc}>Estime seu 1RM e calcule cargas por percentual (Epley + Brzycki)</Text>
+          <View style={labStyles.inputGroup}>
+            <View style={labStyles.inputItem}>
+              <Text style={labStyles.inputLabel}>Peso (kg)</Text>
+              <TextInput
+                style={labStyles.input}
+                value={rmWeight}
+                onChangeText={setRmWeight}
+                keyboardType="numeric"
+                placeholder="Ex: 100"
+                placeholderTextColor={Colors.muted}
+              />
+            </View>
+            <View style={labStyles.inputItem}>
+              <Text style={labStyles.inputLabel}>Reps realizadas</Text>
+              <TextInput
+                style={labStyles.input}
+                value={rmReps}
+                onChangeText={setRmReps}
+                keyboardType="numeric"
+                placeholder="Ex: 5"
+                placeholderTextColor={Colors.muted}
+              />
+            </View>
+          </View>
+          <Pressable onPress={calc1RM} style={({ pressed }) => [labStyles.calcBtn, { opacity: pressed ? 0.8 : 1 }]}>
+            <LinearGradient colors={[Colors.goldDark, Colors.gold]} style={labStyles.calcBtnGrad}>
+              <Text style={labStyles.calcBtnText}>Estimar 1RM</Text>
+            </LinearGradient>
+          </Pressable>
+          {rmResult != null && (
+            <Animated.View entering={FadeIn.duration(300)} style={labStyles.resultBox}>
+              <Text style={labStyles.resultMain}>1RM estimado: {rmResult.toFixed(1)} kg</Text>
+              <Text style={labStyles.resultSub}>Percentuais de carga:</Text>
+              {[90, 85, 80, 75, 70, 65, 60].map((pct) => (
+                <View key={pct} style={labStyles.pctRow}>
+                  <Text style={labStyles.pctLabel}>{pct}%</Text>
+                  <Text style={labStyles.pctValue}>{(rmResult * pct / 100).toFixed(1)} kg</Text>
+                </View>
+              ))}
+            </Animated.View>
+          )}
+        </Animated.View>
+      )}
+
+      {activeTool === "imc" && (
+        <Animated.View entering={FadeInDown.delay(80).springify()} style={labStyles.card}>
+          <View style={labStyles.cardHeader}>
+            <Ionicons name="body-outline" size={20} color={Colors.gold} />
+            <Text style={labStyles.cardTitle}>Calculadora de IMC</Text>
+          </View>
+          <Text style={labStyles.cardDesc}>Índice de Massa Corporal — referência para composição corporal</Text>
+          <View style={labStyles.inputGroup}>
+            <View style={labStyles.inputItem}>
+              <Text style={labStyles.inputLabel}>Peso (kg)</Text>
+              <TextInput
+                style={labStyles.input}
+                value={imcWeight}
+                onChangeText={setImcWeight}
+                keyboardType="numeric"
+                placeholder="Ex: 80"
+                placeholderTextColor={Colors.muted}
+              />
+            </View>
+            <View style={labStyles.inputItem}>
+              <Text style={labStyles.inputLabel}>Altura (cm)</Text>
+              <TextInput
+                style={labStyles.input}
+                value={imcHeight}
+                onChangeText={setImcHeight}
+                keyboardType="numeric"
+                placeholder="Ex: 175"
+                placeholderTextColor={Colors.muted}
+              />
+            </View>
+          </View>
+          <Pressable onPress={calcIMC} style={({ pressed }) => [labStyles.calcBtn, { opacity: pressed ? 0.8 : 1 }]}>
+            <LinearGradient colors={[Colors.goldDark, Colors.gold]} style={labStyles.calcBtnGrad}>
+              <Text style={labStyles.calcBtnText}>Calcular IMC</Text>
+            </LinearGradient>
+          </Pressable>
+          {imcResult != null && (() => {
+            const cat = imcCategory(imcResult);
+            return (
+              <Animated.View entering={FadeIn.duration(300)} style={labStyles.resultBox}>
+                <Text style={labStyles.resultMain}>IMC: {imcResult.toFixed(1)}</Text>
+                <View style={[labStyles.imcCatBadge, { backgroundColor: `${cat.color}20`, borderColor: `${cat.color}40` }]}>
+                  <Text style={[labStyles.imcCatText, { color: cat.color }]}>{cat.label}</Text>
+                </View>
+                <View style={labStyles.imcScale}>
+                  {[
+                    { label: "< 18.5", cat: "Abaixo", color: "#60A5FA" },
+                    { label: "18.5-24.9", cat: "Normal", color: "#4ADE80" },
+                    { label: "25-29.9", cat: "Sobrepeso", color: "#FBBF24" },
+                    { label: "≥ 30", cat: "Obeso", color: "#F87171" },
+                  ].map((row) => (
+                    <View key={row.cat} style={labStyles.imcScaleRow}>
+                      <View style={[labStyles.imcScaleDot, { backgroundColor: row.color }]} />
+                      <Text style={labStyles.imcScaleRange}>{row.label}</Text>
+                      <Text style={labStyles.imcScaleCat}>{row.cat}</Text>
+                    </View>
+                  ))}
+                </View>
+              </Animated.View>
+            );
+          })()}
+        </Animated.View>
+      )}
+
+      {activeTool === "rpe" && (
+        <Animated.View entering={FadeInDown.delay(80).springify()} style={labStyles.card}>
+          <View style={labStyles.cardHeader}>
+            <Ionicons name="speedometer-outline" size={20} color={Colors.gold} />
+            <Text style={labStyles.cardTitle}>Tabela RPE / RIR</Text>
+          </View>
+          <Text style={labStyles.cardDesc}>Escala de Percepção de Esforço e Repetições em Reserva</Text>
+          {RPE_TABLE.map((row) => (
+            <View key={row.rpe} style={labStyles.rpeRow}>
+              <View style={labStyles.rpeBadges}>
+                <View style={labStyles.rpeBadge}>
+                  <Text style={labStyles.rpeBadgeLabel}>RPE</Text>
+                  <Text style={labStyles.rpeBadgeVal}>{row.rpe}</Text>
+                </View>
+                <View style={[labStyles.rpeBadge, { backgroundColor: "rgba(96,165,250,0.12)", borderColor: "rgba(96,165,250,0.25)" }]}>
+                  <Text style={[labStyles.rpeBadgeLabel, { color: "#60A5FA" }]}>RIR</Text>
+                  <Text style={[labStyles.rpeBadgeVal, { color: "#60A5FA" }]}>{row.rir}</Text>
+                </View>
+              </View>
+              <Text style={labStyles.rpeDesc}>{row.desc}</Text>
+            </View>
+          ))}
+          <LinearGradient colors={["#1A1A1C", "#111113"]} style={labStyles.rpeTip}>
+            <Ionicons name="information-circle-outline" size={16} color={Colors.gold} />
+            <Text style={labStyles.rpeTipText}>RPE e RIR são ferramentas de auto-regulação. Use consistentemente para calibrar sua percepção de esforço ao longo das semanas.</Text>
+          </LinearGradient>
+        </Animated.View>
+      )}
+
+      <Animated.View entering={FadeInDown.delay(200).springify()} style={[labStyles.card, { marginTop: 4 }]}>
+        <View style={labStyles.cardHeader}>
+          <Ionicons name="time-outline" size={18} color={Colors.muted} />
+          <Text style={[labStyles.cardTitle, { color: Colors.textSecondary, fontSize: 13 }]}>Em breve no Lab</Text>
+        </View>
+        <View style={labStyles.comingSoon}>
+          {["Estimativa TDEE / GET", "Calculadora de carga de treino (TSS)", "Periodização automática", "Análise de deload"].map((item) => (
+            <View key={item} style={labStyles.comingSoonItem}>
+              <Ionicons name="add-circle-outline" size={14} color={Colors.muted} />
+              <Text style={labStyles.comingSoonText}>{item}</Text>
+            </View>
+          ))}
+        </View>
+      </Animated.View>
+    </ScrollView>
+  );
+}
+
 export default function AtlasScreen() {
   const insets = useSafeAreaInsets();
   const { initialMessage } = useLocalSearchParams<{ initialMessage?: string }>();
-  const [activeTab, setActiveTab] = useState<"chat" | "conteudo">("chat");
+  const [activeTab, setActiveTab] = useState<"chat" | "conteudo" | "lab">("chat");
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -176,9 +488,14 @@ export default function AtlasScreen() {
     ? [...messages, { id: "stream", role: "assistant", content: streamContent }]
     : messages;
 
+  const TABS = [
+    { id: "chat" as const, label: "Lab IA", icon: "chatbubble-outline" },
+    { id: "conteudo" as const, label: "Conteúdo", icon: "library-outline" },
+    { id: "lab" as const, label: "Lab", icon: "calculator-outline" },
+  ];
+
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={[styles.header, { paddingTop: topPad + 12 }]}>
         <View style={styles.headerLeft}>
           <LinearGradient colors={[Colors.goldDark, Colors.gold]} style={styles.headerLogo}>
@@ -191,14 +508,15 @@ export default function AtlasScreen() {
         </View>
       </View>
 
-      {/* Mode Tabs */}
       <View style={styles.modeTabs}>
-        {(["chat", "conteudo"] as const).map((t) => (
-          <Pressable key={t} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setActiveTab(t); }} style={[styles.modeTab, activeTab === t && styles.modeTabActive]}>
-            <Ionicons name={t === "chat" ? "chatbubble-outline" : "library-outline"} size={14} color={activeTab === t ? Colors.gold : Colors.muted} />
-            <Text style={[styles.modeTabText, activeTab === t && styles.modeTabTextActive]}>
-              {t === "chat" ? "Lab IA" : "Conteúdo"}
-            </Text>
+        {TABS.map((t) => (
+          <Pressable
+            key={t.id}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setActiveTab(t.id); }}
+            style={[styles.modeTab, activeTab === t.id && styles.modeTabActive]}
+          >
+            <Ionicons name={t.icon as any} size={14} color={activeTab === t.id ? Colors.gold : Colors.muted} />
+            <Text style={[styles.modeTabText, activeTab === t.id && styles.modeTabTextActive]}>{t.label}</Text>
           </Pressable>
         ))}
       </View>
@@ -257,6 +575,8 @@ export default function AtlasScreen() {
             </View>
           </View>
         </KeyboardAvoidingView>
+      ) : activeTab === "lab" ? (
+        <LabCalculators botPad={botPad} />
       ) : (
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.contentScroll, { paddingBottom: botPad + 100 }]}>
           <Animated.View entering={FadeInDown.delay(60).springify()}>
@@ -311,6 +631,51 @@ export default function AtlasScreen() {
   );
 }
 
+const labStyles = StyleSheet.create({
+  scroll: { paddingHorizontal: 16, paddingTop: 8 },
+  toolBar: { flexDirection: "row", gap: 8, marginBottom: 16, flexWrap: "wrap" },
+  toolBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.border },
+  toolBtnActive: { backgroundColor: "rgba(212,175,55,0.12)", borderColor: "rgba(212,175,55,0.3)" },
+  toolLabel: { fontFamily: "Outfit_500Medium", fontSize: 13, color: Colors.muted },
+  toolLabelActive: { color: Colors.gold },
+  card: { backgroundColor: Colors.card, borderRadius: 20, padding: 18, borderWidth: 1, borderColor: Colors.border, marginBottom: 14 },
+  cardHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 6 },
+  cardTitle: { fontFamily: "Outfit_700Bold", fontSize: 16, color: Colors.text },
+  cardDesc: { fontFamily: "Outfit_400Regular", fontSize: 13, color: Colors.textSecondary, lineHeight: 18, marginBottom: 16 },
+  inputGroup: { flexDirection: "row", gap: 10, marginBottom: 14 },
+  inputItem: { flex: 1 },
+  inputLabel: { fontFamily: "Outfit_500Medium", fontSize: 11, color: Colors.muted, marginBottom: 6 },
+  input: { backgroundColor: Colors.black, borderRadius: 12, padding: 12, fontFamily: "Outfit_400Regular", fontSize: 15, color: Colors.text, borderWidth: 1, borderColor: Colors.border, textAlign: "center" },
+  calcBtn: { borderRadius: 14, overflow: "hidden" },
+  calcBtnGrad: { padding: 14, alignItems: "center" },
+  calcBtnText: { fontFamily: "Outfit_700Bold", fontSize: 15, color: Colors.black },
+  resultBox: { marginTop: 14, backgroundColor: "rgba(212,175,55,0.06)", borderRadius: 14, padding: 14, borderWidth: 1, borderColor: "rgba(212,175,55,0.2)" },
+  resultMain: { fontFamily: "Outfit_700Bold", fontSize: 16, color: Colors.gold, marginBottom: 4 },
+  resultText: { fontFamily: "Outfit_400Regular", fontSize: 13, color: Colors.textSecondary, marginBottom: 2 },
+  resultSub: { fontFamily: "Outfit_600SemiBold", fontSize: 13, color: Colors.textSecondary, marginTop: 8, marginBottom: 6 },
+  pctRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: Colors.border },
+  pctLabel: { fontFamily: "Outfit_500Medium", fontSize: 13, color: Colors.muted },
+  pctValue: { fontFamily: "Outfit_700Bold", fontSize: 13, color: Colors.text },
+  imcCatBadge: { alignSelf: "flex-start", borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4, borderWidth: 1, marginVertical: 8 },
+  imcCatText: { fontFamily: "Outfit_600SemiBold", fontSize: 13 },
+  imcScale: { marginTop: 8, gap: 6 },
+  imcScaleRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  imcScaleDot: { width: 10, height: 10, borderRadius: 5 },
+  imcScaleRange: { fontFamily: "Outfit_500Medium", fontSize: 12, color: Colors.muted, flex: 1 },
+  imcScaleCat: { fontFamily: "Outfit_400Regular", fontSize: 12, color: Colors.textSecondary },
+  rpeRow: { borderBottomWidth: 1, borderBottomColor: Colors.border, paddingVertical: 12, gap: 6 },
+  rpeBadges: { flexDirection: "row", gap: 8 },
+  rpeBadge: { backgroundColor: "rgba(212,175,55,0.12)", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: "rgba(212,175,55,0.25)", alignItems: "center", minWidth: 52 },
+  rpeBadgeLabel: { fontFamily: "Outfit_400Regular", fontSize: 9, color: Colors.gold, letterSpacing: 0.5 },
+  rpeBadgeVal: { fontFamily: "Outfit_700Bold", fontSize: 14, color: Colors.gold },
+  rpeDesc: { fontFamily: "Outfit_400Regular", fontSize: 13, color: Colors.textSecondary, lineHeight: 18 },
+  rpeTip: { borderRadius: 12, padding: 12, borderWidth: 1, borderColor: Colors.border, marginTop: 12, flexDirection: "row", gap: 8 },
+  rpeTipText: { fontFamily: "Outfit_400Regular", fontSize: 12, color: Colors.textSecondary, flex: 1, lineHeight: 18 },
+  comingSoon: { gap: 10 },
+  comingSoonItem: { flexDirection: "row", alignItems: "center", gap: 8 },
+  comingSoonText: { fontFamily: "Outfit_400Regular", fontSize: 13, color: Colors.muted },
+});
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.black },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: Colors.border },
@@ -319,7 +684,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontFamily: "Outfit_700Bold", fontSize: 18, color: Colors.text, letterSpacing: -0.3 },
   headerSub: { fontFamily: "Outfit_400Regular", fontSize: 11, color: Colors.gold, marginTop: 1 },
   modeTabs: { flexDirection: "row", paddingHorizontal: 20, paddingVertical: 12, gap: 8 },
-  modeTab: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.border },
+  modeTab: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.border },
   modeTabActive: { backgroundColor: "rgba(212,175,55,0.12)", borderColor: "rgba(212,175,55,0.3)" },
   modeTabText: { fontFamily: "Outfit_500Medium", fontSize: 13, color: Colors.muted },
   modeTabTextActive: { color: Colors.gold, fontFamily: "Outfit_600SemiBold" },
@@ -337,7 +702,7 @@ const styles = StyleSheet.create({
   aiIcon: { width: 26, height: 26, borderRadius: 8, backgroundColor: "rgba(212,175,55,0.15)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(212,175,55,0.2)" },
   bubble: { maxWidth: "80%", borderRadius: 16, padding: 14 },
   bubbleAI: { backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.border, borderBottomLeftRadius: 4 },
-  bubbleUser: { borderBottomRightRadius: 4 },
+  bubbleUser: { borderBottomRightRadius: 4, backgroundColor: Colors.gold },
   bubbleText: { fontFamily: "Outfit_400Regular", fontSize: 14, lineHeight: 22 },
   bubbleTextAI: { color: Colors.text },
   bubbleTextUser: { color: Colors.black },

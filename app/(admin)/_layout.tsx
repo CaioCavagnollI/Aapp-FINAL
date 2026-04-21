@@ -17,6 +17,8 @@ export default function AdminLayout() {
       <Stack.Screen name="usuarios" options={{ title: "Gerenciar Usuários", headerBackTitle: "Painel" }} />
       <Stack.Screen name="loja-mod" options={{ title: "Moderação da Loja", headerBackTitle: "Painel" }} />
       <Stack.Screen name="integracoes" options={{ title: "Integrações", headerBackTitle: "Painel" }} />
+      <Stack.Screen name="faturamento" options={{ title: "Faturamento", headerBackTitle: "Painel" }} />
+      <Stack.Screen name="arquivos" options={{ title: "Arquivos", headerBackTitle: "Painel" }} />
     </Stack>
   );
 }

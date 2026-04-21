@@ -655,6 +655,485 @@ ${notes ? `- Observações: ${notes}` : ""}`;
     }
   });
 
+  // ===== USER FILE UPLOADS =====
+
+  const USER_UPLOADS_DIR = path.resolve(process.cwd(), "uploads", "user");
+  if (!fs.existsSync(USER_UPLOADS_DIR)) {
+    fs.mkdirSync(USER_UPLOADS_DIR, { recursive: true });
+  }
+
+  const userUpload = multer({
+    storage: multer.diskStorage({
+      destination: (_req, _file, cb) => cb(null, USER_UPLOADS_DIR),
+      filename: (_req, file, cb) => {
+        const safe = file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_");
+        cb(null, `${Date.now()}_${safe}`);
+      },
+    }),
+    limits: { fileSize: 50 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+      const allowed = [
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "image/png",
+        "image/jpeg",
+        "image/jpg",
+      ];
+      const ext = path.extname(file.originalname).toLowerCase();
+      const allowedExts = [".pdf", ".doc", ".docx", ".png", ".jpg", ".jpeg"];
+      if (allowed.includes(file.mimetype) || allowedExts.includes(ext)) cb(null, true);
+      else cb(new Error("Tipo de arquivo não permitido"));
+    },
+  });
+
+  app.get("/api/user/files", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { pool } = await import("./db");
+      const result = await pool.query(
+        "SELECT id, filename, original_name, size, mime_type, ext, uploaded_at FROM user_files WHERE user_id = $1 ORDER BY uploaded_at DESC",
+        [req.userId]
+      );
+      const files = result.rows.map((r) => ({
+        ...r,
+        url: `/api/user/files/${r.id}/download`,
+      }));
+      res.json({ files });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao listar arquivos" });
+    }
+  });
+
+  app.post("/api/user/upload", authMiddleware, userUpload.single("file"), async (req: AuthRequest, res) => {
+    if (!req.file) return res.status(400).json({ error: "Nenhum arquivo enviado" });
+    try {
+      const { pool } = await import("./db");
+      const ext = path.extname(req.file.originalname).toLowerCase();
+      await pool.query(
+        "INSERT INTO user_files (user_id, filename, original_name, size, mime_type, ext) VALUES ($1, $2, $3, $4, $5, $6)",
+        [req.userId, req.file.filename, req.file.originalname, req.file.size, req.file.mimetype, ext]
+      );
+      res.json({ message: "Arquivo enviado com sucesso", originalName: req.file.originalname, size: req.file.size });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao registrar arquivo" });
+    }
+  });
+
+  app.delete("/api/user/files/:id", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { pool } = await import("./db");
+      const result = await pool.query(
+        "SELECT filename FROM user_files WHERE id = $1 AND user_id = $2",
+        [req.params.id, req.userId]
+      );
+      if (!result.rows.length) return res.status(404).json({ error: "Arquivo não encontrado" });
+      const filePath = path.join(USER_UPLOADS_DIR, result.rows[0].filename);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      await pool.query("DELETE FROM user_files WHERE id = $1 AND user_id = $2", [req.params.id, req.userId]);
+      res.json({ message: "Arquivo excluído" });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao excluir arquivo" });
+    }
+  });
+
+  // ===== RESEARCH APIs (PubMed, CrossRef, OpenAlex) =====
+
+  app.get("/api/research/pubmed", async (req, res) => {
+    try {
+      const { query, max = "10" } = req.query as { query?: string; max?: string };
+      if (!query) return res.status(400).json({ error: "query é obrigatório" });
+      const searchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${encodeURIComponent(query)}&retmax=${max}&retmode=json&sort=relevance`;
+      const searchRes = await fetch(searchUrl);
+      const searchData = await searchRes.json() as { esearchresult?: { idlist?: string[] } };
+      const ids = searchData.esearchresult?.idlist || [];
+      if (!ids.length) return res.json({ articles: [] });
+      const summaryUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id=${ids.join(",")}&retmode=json`;
+      const summaryRes = await fetch(summaryUrl);
+      const summaryData = await summaryRes.json() as { result?: Record<string, any> };
+      const articles = ids.map((id) => {
+        const item = summaryData.result?.[id] || {};
+        return {
+          id,
+          title: item.title || "",
+          authors: (item.authors || []).slice(0, 3).map((a: any) => a.name).join(", "),
+          journal: item.fulljournalname || item.source || "",
+          pubdate: item.pubdate || "",
+          url: `https://pubmed.ncbi.nlm.nih.gov/${id}/`,
+        };
+      });
+      res.json({ articles });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao buscar no PubMed" });
+    }
+  });
+
+  app.get("/api/research/crossref", async (req, res) => {
+    try {
+      const { query, rows = "10" } = req.query as { query?: string; rows?: string };
+      if (!query) return res.status(400).json({ error: "query é obrigatório" });
+      const url = `https://api.crossref.org/works?query=${encodeURIComponent(query)}&rows=${rows}&select=DOI,title,author,published,container-title&mailto=admin@acmenexusfit.casa`;
+      const crossRes = await fetch(url);
+      const crossData = await crossRes.json() as { message?: { items?: any[] } };
+      const items = crossData.message?.items || [];
+      const articles = items.map((item) => ({
+        doi: item.DOI,
+        title: Array.isArray(item.title) ? item.title[0] : item.title || "",
+        authors: (item.author || []).slice(0, 3).map((a: any) => `${a.given || ""} ${a.family || ""}`.trim()).join(", "),
+        journal: Array.isArray(item["container-title"]) ? item["container-title"][0] : "",
+        year: item.published?.["date-parts"]?.[0]?.[0] || "",
+        url: `https://doi.org/${item.DOI}`,
+      }));
+      res.json({ articles });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao buscar no CrossRef" });
+    }
+  });
+
+  app.get("/api/research/openalex", async (req, res) => {
+    try {
+      const { query, per_page = "10" } = req.query as { query?: string; per_page?: string };
+      if (!query) return res.status(400).json({ error: "query é obrigatório" });
+      const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&per_page=${per_page}&mailto=admin@acmenexusfit.casa`;
+      const oaRes = await fetch(url);
+      const oaData = await oaRes.json() as { results?: any[] };
+      const articles = (oaData.results || []).map((item) => ({
+        id: item.id,
+        title: item.display_name || item.title || "",
+        authors: (item.authorships || []).slice(0, 3).map((a: any) => a.author?.display_name || "").join(", "),
+        journal: item.primary_location?.source?.display_name || "",
+        year: item.publication_year || "",
+        citations: item.cited_by_count || 0,
+        url: item.doi ? `https://doi.org/${item.doi.replace("https://doi.org/", "")}` : item.id,
+        open_access: item.open_access?.is_oa || false,
+      }));
+      res.json({ articles });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao buscar no OpenAlex" });
+    }
+  });
+
+  // ===== STRIPE PAYMENTS =====
+
+  app.post("/api/payments/create-checkout", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { plan } = req.body;
+      if (!plan) return res.status(400).json({ error: "Plano é obrigatório" });
+      const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+      if (!stripeSecretKey) {
+        return res.status(503).json({ error: "Stripe não configurado. Configure STRIPE_SECRET_KEY nas variáveis de ambiente." });
+      }
+      const PLAN_PRICES: Record<string, { amount: number; currency: string; interval?: string }> = {
+        starter_monthly: { amount: 2990, currency: "brl", interval: "month" },
+        starter_annual: { amount: 23990, currency: "brl", interval: "year" },
+        pro_monthly: { amount: 5990, currency: "brl", interval: "month" },
+        pro_annual: { amount: 47990, currency: "brl", interval: "year" },
+        vitalicio: { amount: 99700, currency: "brl" },
+      };
+      const priceConfig = PLAN_PRICES[plan];
+      if (!priceConfig) return res.status(400).json({ error: "Plano inválido" });
+      res.json({
+        checkoutUrl: `https://buy.stripe.com/${plan}`,
+        plan,
+        amount: priceConfig.amount / 100,
+        currency: priceConfig.currency.toUpperCase(),
+        message: "Configure Stripe com suas chaves reais para processar pagamentos.",
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao criar sessão de pagamento" });
+    }
+  });
+
+  app.post("/api/payments/webhook", async (req, res) => {
+    try {
+      const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+      if (!stripeWebhookSecret) return res.status(503).json({ error: "Webhook secret não configurado" });
+      const sig = req.headers["stripe-signature"] as string;
+      console.log("[Stripe Webhook] Received event, signature:", sig ? "present" : "missing");
+      res.json({ received: true });
+    } catch (error) {
+      res.status(400).json({ error: "Webhook error" });
+    }
+  });
+
+  app.post("/api/payments/pix", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { plan } = req.body;
+      if (!plan) return res.status(400).json({ error: "Plano é obrigatório" });
+      const PLAN_AMOUNTS: Record<string, number> = {
+        starter_monthly: 29.90,
+        starter_annual: 239.90,
+        pro_monthly: 59.90,
+        pro_annual: 479.90,
+        vitalicio: 997.00,
+      };
+      const amount = PLAN_AMOUNTS[plan];
+      if (!amount) return res.status(400).json({ error: "Plano inválido" });
+      const pixKey = process.env.PIX_KEY || "";
+      res.json({
+        pixKey,
+        amount,
+        description: `Nexus Fit — Plano ${plan}`,
+        message: "Configure PIX_KEY nas variáveis de ambiente com sua chave PIX real.",
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao gerar PIX" });
+    }
+  });
+
+  // ===== ATLAS SCANNER PROXY =====
+
+  app.post("/api/atlas-scanner/analyze", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { query, type = "text", imageUrl } = req.body;
+      if (!query && !imageUrl) return res.status(400).json({ error: "Dados para análise são obrigatórios" });
+
+      const ATLAS_URL = "https://atlas-scanner-v-3--caiocavagnollic.replit.app/scanner";
+      let atlasResult: any = null;
+
+      // Try Atlas Scanner external webhook first
+      try {
+        const atlasRes = await fetch(ATLAS_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: query || imageUrl, type, source: "nexus_atlas" }),
+          signal: AbortSignal.timeout(8000),
+        });
+        if (atlasRes.ok) {
+          atlasResult = await atlasRes.json();
+        }
+      } catch { /* fallback to OpenAI */ }
+
+      // Fallback: use OpenAI GPT-4 for deep analysis
+      if (!atlasResult) {
+        try {
+          const systemMsg = type === "equipment"
+            ? "Você é o Atlas Scanner IA. Identifique equipamentos de ginástica, exercícios e técnica de execução. Responda em JSON com: nome, categoria, musculos_alvo, execucao_correta, variações, erros_comuns, beneficios. Responda sempre em português do Brasil."
+            : type === "posture"
+            ? "Você é o Atlas Scanner IA especializado em análise postural. Avalie a postura e forneça JSON com: avaliacao_geral, pontos_fortes, correcoes_necessarias, exercicios_corretivos, riscos_identificados. Responda sempre em português do Brasil."
+            : type === "food"
+            ? "Você é o Atlas Scanner IA nutricionista esportivo. Analise o alimento/suplemento e responda em JSON com: nome, calorias_por_100g, proteina_g, carboidratos_g, gorduras_g, porcao_recomendada, timing_ideal, observacoes_esportivas. Responda sempre em português do Brasil."
+            : "Você é o Atlas Scanner IA. Analise o conteúdo e forneça informações estruturadas relevantes em JSON. Responda sempre em português do Brasil.";
+
+          const aiRes = await openai.chat.completions.create({
+            model: "gpt-4.1",
+            messages: [
+              { role: "system", content: systemMsg },
+              { role: "user", content: `Tipo de análise: ${type}. Conteúdo: ${query || imageUrl}. Responda APENAS com JSON válido.` }
+            ],
+            max_completion_tokens: 800,
+          });
+          const content = aiRes.choices[0]?.message?.content || "{}";
+          try {
+            atlasResult = JSON.parse(content.replace(/```json\n?|\n?```/g, "").trim());
+          } catch {
+            atlasResult = { analise: content, fonte: "Atlas IA (GPT-4.1)" };
+          }
+        } catch (aiError: any) {
+          console.warn("[Atlas Scanner] OpenAI fallback error:", aiError?.message || aiError);
+          atlasResult = {
+            analise: `Análise do conteúdo: "${query || imageUrl}" (tipo: ${type}). Para análise detalhada configure a chave de IA nas variáveis de ambiente.`,
+            fonte: "Atlas Scanner (modo offline)",
+            tipo: type,
+            sugestao: "Configure AI_INTEGRATIONS_OPENAI_API_KEY para análise completa via Atlas IA.",
+          };
+        }
+      }
+
+      // Persist as a scan record
+      let scan: any = null;
+      try {
+        scan = await storage.createScan({
+          user_id: req.userId!,
+          type: `atlas_${type}`,
+          raw_data: query || imageUrl || "",
+          result: atlasResult,
+        });
+      } catch { /* non-critical */ }
+
+      res.json({ result: atlasResult, scan_id: scan?.id || null, source: "atlas_scanner" });
+    } catch (error) {
+      console.error("[Atlas Scanner] Error:", error);
+      res.status(500).json({ error: "Erro ao processar análise do Atlas Scanner" });
+    }
+  });
+
+  // ===== GOOGLE FIT INTEGRATION =====
+
+  app.get("/api/health/google-fit/status", authMiddleware, async (req: AuthRequest, res) => {
+    const clientId = process.env.GOOGLE_FIT_CLIENT_ID;
+    res.json({
+      connected: !!clientId,
+      configured: !!clientId,
+      authUrl: clientId
+        ? `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(process.env.GOOGLE_FIT_REDIRECT_URI || "")}&response_type=code&scope=https://www.googleapis.com/auth/fitness.activity.read+https://www.googleapis.com/auth/fitness.body.read+https://www.googleapis.com/auth/fitness.heart_rate.read&access_type=offline`
+        : null,
+      message: clientId ? "Google Fit configurado" : "Configure GOOGLE_FIT_CLIENT_ID e GOOGLE_FIT_CLIENT_SECRET nas variáveis de ambiente",
+      dataSources: [
+        { id: "steps", name: "Passos Diários", unit: "passos", icon: "footsteps-outline" },
+        { id: "heart_rate", name: "Frequência Cardíaca", unit: "bpm", icon: "heart-outline" },
+        { id: "calories", name: "Calorias Queimadas", unit: "kcal", icon: "flame-outline" },
+        { id: "active_minutes", name: "Minutos Ativos", unit: "min", icon: "timer-outline" },
+        { id: "distance", name: "Distância", unit: "km", icon: "map-outline" },
+        { id: "weight", name: "Peso", unit: "kg", icon: "scale-outline" },
+      ],
+    });
+  });
+
+  app.post("/api/health/google-fit/sync", authMiddleware, async (req: AuthRequest, res) => {
+    const { accessToken } = req.body;
+    if (!accessToken) return res.status(400).json({ error: "Token de acesso Google Fit é obrigatório" });
+
+    try {
+      const now = Date.now();
+      const dayAgo = now - 86400000;
+      const fitRes = await fetch(
+        `https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            aggregateBy: [
+              { dataTypeName: "com.google.step_count.delta" },
+              { dataTypeName: "com.google.calories.expended" },
+              { dataTypeName: "com.google.heart_rate.bpm" },
+            ],
+            bucketByTime: { durationMillis: 86400000 },
+            startTimeMillis: dayAgo,
+            endTimeMillis: now,
+          }),
+        }
+      );
+      if (!fitRes.ok) return res.status(400).json({ error: "Falha ao buscar dados do Google Fit" });
+      const fitData = await fitRes.json();
+      res.json({ synced: true, data: fitData, timestamp: new Date().toISOString() });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao sincronizar Google Fit" });
+    }
+  });
+
+  // ===== SAMSUNG HEALTH INTEGRATION =====
+
+  app.get("/api/health/samsung/status", authMiddleware, async (_req, res) => {
+    res.json({
+      connected: false,
+      configured: false,
+      message: "Samsung Health requer Samsung Developer Partner Agreement. Solicite acesso em shealth.samsung.com/developer.",
+      authUrl: "https://shealth.samsung.com/developer",
+      dataSources: [
+        { id: "steps", name: "Passos", unit: "passos", icon: "footsteps-outline" },
+        { id: "heart_rate", name: "Frequência Cardíaca", unit: "bpm", icon: "heart-outline" },
+        { id: "sleep", name: "Sono", unit: "horas", icon: "moon-outline" },
+        { id: "stress", name: "Nível de Estresse", unit: "pts", icon: "pulse-outline" },
+        { id: "calories", name: "Calorias", unit: "kcal", icon: "flame-outline" },
+        { id: "body_composition", name: "Composição Corporal", unit: "%", icon: "body-outline" },
+        { id: "spo2", name: "SpO2", unit: "%", icon: "water-outline" },
+      ],
+    });
+  });
+
+  // ===== GEMINI AI ALTERNATIVE =====
+
+  app.post("/api/ai/gemini", authMiddleware, async (req: AuthRequest, res) => {
+    const { message, context } = req.body;
+    if (!message) return res.status(400).json({ error: "Mensagem é obrigatória" });
+
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (!geminiKey) {
+      // Fallback to OpenAI if Gemini not configured
+      try {
+        const aiRes = await openai.chat.completions.create({
+          model: "gpt-4.1",
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            ...(context || []),
+            { role: "user", content: message },
+          ],
+          max_completion_tokens: 800,
+        });
+        return res.json({
+          reply: aiRes.choices[0]?.message?.content || "",
+          model: "gpt-4.1-fallback",
+          note: "Gemini não configurado. Configure GEMINI_API_KEY para usar o Google Gemini.",
+        });
+      } catch {
+        return res.status(503).json({ error: "Nenhum modelo de IA disponível" });
+      }
+    }
+
+    try {
+      const geminiRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: `${SYSTEM_PROMPT}\n\nUsuário: ${message}` }] }],
+            generationConfig: { maxOutputTokens: 800, temperature: 0.7 },
+          }),
+        }
+      );
+      if (!geminiRes.ok) throw new Error("Gemini API error");
+      const gemData = await geminiRes.json();
+      const reply = gemData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      res.json({ reply, model: "gemini-2.0-flash" });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao processar com Gemini" });
+    }
+  });
+
+  // ===== STRAVA INTEGRATION =====
+
+  app.get("/api/health/strava/status", authMiddleware, async (_req, res) => {
+    const clientId = process.env.STRAVA_CLIENT_ID;
+    res.json({
+      connected: !!clientId,
+      configured: !!clientId,
+      authUrl: clientId
+        ? `https://www.strava.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(process.env.STRAVA_REDIRECT_URI || "")}&response_type=code&scope=read,activity:read_all`
+        : null,
+      message: clientId ? "Strava configurado" : "Configure STRAVA_CLIENT_ID e STRAVA_CLIENT_SECRET nas variáveis de ambiente",
+    });
+  });
+
+  app.get("/api/health/strava/activities", authMiddleware, async (req: AuthRequest, res) => {
+    const { accessToken } = req.query as { accessToken?: string };
+    if (!accessToken) return res.status(400).json({ error: "accessToken é obrigatório" });
+    try {
+      const stravaRes = await fetch(
+        `https://www.strava.com/api/v3/athlete/activities?per_page=20`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      if (!stravaRes.ok) return res.status(400).json({ error: "Falha ao buscar atividades Strava" });
+      const activities = await stravaRes.json();
+      res.json({ activities });
+    } catch {
+      res.status(500).json({ error: "Erro ao buscar atividades Strava" });
+    }
+  });
+
+  // ===== ADMIN BILLING STATS =====
+
+  app.get("/api/admin/billing/stats", adminMiddleware, async (_req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const result = await pool.query(`
+        SELECT
+          COUNT(*) FILTER (WHERE plan != 'free') as active_subscriptions,
+          COUNT(*) as total_users
+        FROM users
+      `);
+      const stats = result.rows[0];
+      res.json({
+        activeSubscriptions: parseInt(stats.active_subscriptions) || 0,
+        totalUsers: parseInt(stats.total_users) || 0,
+        mrr: 0,
+        totalRevenue: 0,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao buscar métricas de faturamento" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

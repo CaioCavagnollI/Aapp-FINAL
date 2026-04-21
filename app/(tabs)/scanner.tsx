@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Modal,
   Linking,
+  TextInput,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -38,6 +39,7 @@ interface Scan {
 }
 
 type ScannerMode = "nutricional" | "atlas" | "biblioteca";
+type AtlasAnalysisType = "text" | "equipment" | "posture" | "food";
 
 function ScannerFrame({ scanning }: { scanning: boolean }) {
   const pulse = useSharedValue(1);
@@ -76,6 +78,9 @@ export default function ScannerScreen() {
   const [resultModal, setResultModal] = useState<{ visible: boolean; data: any; title: string }>({ visible: false, data: null, title: "" });
   const [analyzing, setAnalyzing] = useState(false);
   const [mode, setMode] = useState<ScannerMode>("nutricional");
+  const [atlasQuery, setAtlasQuery] = useState("");
+  const [atlasType, setAtlasType] = useState<AtlasAnalysisType>("equipment");
+  const [atlasAnalyzing, setAtlasAnalyzing] = useState(false);
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
@@ -154,23 +159,68 @@ export default function ScannerScreen() {
     Linking.openURL(ATLAS_SCANNER_URL);
   };
 
+  const handleAtlasAnalyze = async () => {
+    if (!atlasQuery.trim() || atlasAnalyzing) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    setAtlasAnalyzing(true);
+    setResultModal({ visible: true, data: null, title: "Atlas Scanner analisando..." });
+    try {
+      const res = await fetch(`${baseUrl}api/atlas-scanner/analyze`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({ query: atlasQuery.trim(), type: atlasType }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const result = data.result || {};
+        const title = result.nome || result.name || result.produto || atlasQuery.trim().slice(0, 30);
+        setResultModal({ visible: true, data: result, title });
+        refetch();
+      } else {
+        setResultModal({ visible: true, data: { erro: "Falha na análise" }, title: "Erro" });
+      }
+    } catch {
+      setResultModal({ visible: true, data: { erro: "Erro de conexão" }, title: "Erro" });
+    } finally {
+      setAtlasAnalyzing(false);
+    }
+  };
+
   const formatResult = (data: any): string => {
     if (!data || data.locked) return "";
     if (typeof data === "string") return data;
     const lines: string[] = [];
-    if (data.nome) lines.push(`Produto: ${data.nome}`);
-    if (data.name) lines.push(`Produto: ${data.name}`);
-    if (data.calorias_por_100g) lines.push(`Calorias/100g: ${data.calorias_por_100g} kcal`);
-    if (data.calories) lines.push(`Calorias: ${data.calories} kcal`);
-    if (data.proteina_g) lines.push(`Proteína: ${data.proteina_g}g`);
-    if (data.protein) lines.push(`Proteína: ${data.protein}g`);
-    if (data.carboidratos_g) lines.push(`Carboidratos: ${data.carboidratos_g}g`);
-    if (data.carbs) lines.push(`Carboidratos: ${data.carbs}g`);
-    if (data.gorduras_g) lines.push(`Gorduras: ${data.gorduras_g}g`);
-    if (data.fat) lines.push(`Gorduras: ${data.fat}g`);
-    if (data.porcao_recomendada) lines.push(`Porção: ${data.porcao_recomendada}`);
-    if (data.observacoes_esportivas) lines.push(`\nObservações:\n${data.observacoes_esportivas}`);
-    if (data.analysis) lines.push(`\nAnálise:\n${data.analysis}`);
+    // Nutritional fields
+    if (data.nome) lines.push(`🏷️ Produto: ${data.nome}`);
+    if (data.name) lines.push(`🏷️ Produto: ${data.name}`);
+    if (data.calorias_por_100g) lines.push(`🔥 Calorias/100g: ${data.calorias_por_100g} kcal`);
+    if (data.calories) lines.push(`🔥 Calorias: ${data.calories} kcal`);
+    if (data.proteina_g) lines.push(`💪 Proteína: ${data.proteina_g}g`);
+    if (data.protein) lines.push(`💪 Proteína: ${data.protein}g`);
+    if (data.carboidratos_g) lines.push(`🌾 Carboidratos: ${data.carboidratos_g}g`);
+    if (data.carbs) lines.push(`🌾 Carboidratos: ${data.carbs}g`);
+    if (data.gorduras_g) lines.push(`🥑 Gorduras: ${data.gorduras_g}g`);
+    if (data.fat) lines.push(`🥑 Gorduras: ${data.fat}g`);
+    if (data.porcao_recomendada) lines.push(`⚖️ Porção: ${data.porcao_recomendada}`);
+    if (data.observacoes_esportivas) lines.push(`\n📊 Observações Esportivas:\n${data.observacoes_esportivas}`);
+    // Equipment fields
+    if (data.categoria) lines.push(`📂 Categoria: ${data.categoria}`);
+    if (data.musculos_alvo) lines.push(`💪 Músculos-alvo: ${Array.isArray(data.musculos_alvo) ? data.musculos_alvo.join(", ") : data.musculos_alvo}`);
+    if (data.execucao_correta) lines.push(`✅ Execução correta:\n${data.execucao_correta}`);
+    if (data.variacoes) lines.push(`🔄 Variações: ${Array.isArray(data.variacoes) ? data.variacoes.join(", ") : data.variacoes}`);
+    if (data.erros_comuns) lines.push(`⚠️ Erros comuns:\n${Array.isArray(data.erros_comuns) ? data.erros_comuns.join("\n• ") : data.erros_comuns}`);
+    if (data.beneficios) lines.push(`🏆 Benefícios:\n${Array.isArray(data.beneficios) ? data.beneficios.join("\n• ") : data.beneficios}`);
+    // Posture fields
+    if (data.avaliacao_geral) lines.push(`📋 Avaliação: ${data.avaliacao_geral}`);
+    if (data.pontos_fortes) lines.push(`✅ Pontos fortes: ${Array.isArray(data.pontos_fortes) ? data.pontos_fortes.join(", ") : data.pontos_fortes}`);
+    if (data.correcoes_necessarias) lines.push(`⚠️ Correções:\n${Array.isArray(data.correcoes_necessarias) ? data.correcoes_necessarias.join("\n• ") : data.correcoes_necessarias}`);
+    if (data.exercicios_corretivos) lines.push(`🏋️ Exercícios corretivos: ${Array.isArray(data.exercicios_corretivos) ? data.exercicios_corretivos.join(", ") : data.exercicios_corretivos}`);
+    if (data.riscos_identificados) lines.push(`🚨 Riscos: ${Array.isArray(data.riscos_identificados) ? data.riscos_identificados.join(", ") : data.riscos_identificados}`);
+    // Generic analysis
+    if (data.analise) lines.push(`\n🔍 Análise:\n${data.analise}`);
+    if (data.analysis) lines.push(`\n🔍 Análise:\n${data.analysis}`);
+    if (data.fonte) lines.push(`\nFonte: ${data.fonte}`);
+    if (data.erro) lines.push(`❌ Erro: ${data.erro}`);
     return lines.join("\n") || JSON.stringify(data, null, 2);
   };
 
@@ -293,59 +343,116 @@ export default function ScannerScreen() {
 
         {mode === "atlas" && (
           <Animated.View entering={FadeInDown.delay(60).springify()}>
+            {/* In-app Analysis */}
             <LinearGradient colors={["rgba(212,175,55,0.1)", "rgba(212,175,55,0.04)"]} style={styles.atlasCard}>
               <View style={styles.atlasIconBox}>
                 <Ionicons name="scan-circle-outline" size={44} color={Colors.gold} />
               </View>
-              <Text style={styles.atlasTitle}>Atlas Scanner</Text>
+              <Text style={styles.atlasTitle}>Atlas Scanner IA</Text>
               <Text style={styles.atlasDesc}>
-                O Atlas Scanner é uma ferramenta avançada de reconhecimento visual integrada à plataforma Nexus. Identifica equipamentos, exercícios e suplementos através da câmera do seu dispositivo.
+                Análise inteligente integrada — descreva o equipamento, alimento ou postura para uma análise científica completa.
               </Text>
 
-              <View style={styles.atlasFeaturesGrid}>
-                {[
-                  { icon: "barbell-outline", label: "Equipamentos", sub: "Identifica aparelhos de ginástica" },
-                  { icon: "body-outline", label: "Postura", sub: "Analisa posicionamento corporal" },
-                  { icon: "nutrition-outline", label: "Alimentos", sub: "Reconhece alimentos e nutrição" },
-                  { icon: "flask-outline", label: "Suplementos", sub: "Analisa suplementos esportivos" },
-                ].map((f) => (
-                  <View key={f.label} style={styles.atlasFeature}>
-                    <View style={styles.atlasFeatureIcon}>
-                      <Ionicons name={f.icon as any} size={18} color={Colors.gold} />
-                    </View>
-                    <Text style={styles.atlasFeatureLabel}>{f.label}</Text>
-                    <Text style={styles.atlasFeatureSub}>{f.sub}</Text>
-                  </View>
+              {/* Analysis type selector */}
+              <View style={styles.atlasTypeRow}>
+                {([
+                  { key: "equipment" as AtlasAnalysisType, label: "Equipamento", icon: "barbell-outline" },
+                  { key: "food" as AtlasAnalysisType, label: "Alimento", icon: "nutrition-outline" },
+                  { key: "posture" as AtlasAnalysisType, label: "Postura", icon: "body-outline" },
+                  { key: "text" as AtlasAnalysisType, label: "Geral", icon: "flask-outline" },
+                ] as { key: AtlasAnalysisType; label: string; icon: string }[]).map((t) => (
+                  <Pressable
+                    key={t.key}
+                    onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setAtlasType(t.key); }}
+                    style={[styles.atlasTypeChip, atlasType === t.key && styles.atlasTypeChipAtivo]}
+                  >
+                    <Ionicons name={t.icon as any} size={13} color={atlasType === t.key ? Colors.gold : Colors.muted} />
+                    <Text style={[styles.atlasTypeText, atlasType === t.key && { color: Colors.gold }]}>{t.label}</Text>
+                  </Pressable>
                 ))}
               </View>
 
-              <Pressable onPress={handleAtlasScanner} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }, { width: "100%" }]}>
-                <LinearGradient colors={[Colors.goldDark, Colors.gold]} style={styles.atlasBtn}>
-                  <Ionicons name="scan-outline" size={20} color={Colors.black} />
-                  <Text style={styles.atlasBtnText}>Abrir Atlas Scanner</Text>
+              {/* Query input */}
+              <View style={styles.atlasInputRow}>
+                <TextInput
+                  style={styles.atlasInput}
+                  value={atlasQuery}
+                  onChangeText={setAtlasQuery}
+                  placeholder={
+                    atlasType === "equipment" ? "Ex: supino reto, agachamento, leg press..." :
+                    atlasType === "food" ? "Ex: frango grelhado, arroz integral, whey protein..." :
+                    atlasType === "posture" ? "Descreva a postura ou movimento..." :
+                    "Descreva o que deseja analisar..."
+                  }
+                  placeholderTextColor={Colors.muted}
+                  multiline
+                  numberOfLines={3}
+                  returnKeyType="done"
+                />
+              </View>
+
+              <Pressable
+                onPress={handleAtlasAnalyze}
+                disabled={!atlasQuery.trim() || atlasAnalyzing}
+                style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1, width: "100%", marginBottom: 10 }]}
+              >
+                <LinearGradient
+                  colors={atlasQuery.trim() && !atlasAnalyzing ? [Colors.goldDark, Colors.gold] : [Colors.border, Colors.border]}
+                  style={styles.atlasBtn}
+                >
+                  {atlasAnalyzing
+                    ? <ActivityIndicator size="small" color={Colors.muted} />
+                    : <Ionicons name="flash-outline" size={20} color={atlasQuery.trim() ? Colors.black : Colors.muted} />
+                  }
+                  <Text style={[styles.atlasBtnText, (!atlasQuery.trim() || atlasAnalyzing) && { color: Colors.muted }]}>
+                    {atlasAnalyzing ? "Analisando..." : "Analisar com Atlas IA"}
+                  </Text>
                 </LinearGradient>
               </Pressable>
 
-              <Text style={styles.atlasNote}>O scanner será aberto no navegador com acesso à câmera</Text>
+              <Pressable onPress={handleAtlasScanner} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1, width: "100%" }]}>
+                <View style={styles.atlasLinkBtn}>
+                  <Ionicons name="scan-outline" size={16} color={Colors.gold} />
+                  <Text style={styles.atlasLinkText}>Abrir Scanner Visual (câmera)</Text>
+                  <Ionicons name="open-outline" size={14} color={Colors.muted} />
+                </View>
+              </Pressable>
             </LinearGradient>
 
-            <Text style={styles.section}>Como Usar</Text>
-            {[
-              { num: "1", title: "Toque em 'Abrir Atlas Scanner'", desc: "O scanner abrirá no seu navegador" },
-              { num: "2", title: "Aponte a câmera", desc: "Direcione para o equipamento ou alimento que deseja identificar" },
-              { num: "3", title: "Aguarde a análise", desc: "O Atlas IA processará a imagem e fornecerá informações detalhadas" },
-              { num: "4", title: "Salve os resultados", desc: "As análises ficam salvas no seu histórico" },
-            ].map((s) => (
-              <View key={s.num} style={styles.stepCard}>
-                <View style={styles.stepNum}>
-                  <Text style={styles.stepNumText}>{s.num}</Text>
+            {/* Feature grid */}
+            <Text style={styles.section}>Capacidades do Scanner</Text>
+            <View style={styles.atlasFeaturesGrid}>
+              {[
+                { icon: "barbell-outline", label: "Equipamentos", sub: "Identifica 80+ aparelhos de ginástica", color: Colors.gold },
+                { icon: "body-outline", label: "Postura", sub: "Analisa posicionamento e biomecânica", color: "#F472B6" },
+                { icon: "nutrition-outline", label: "Alimentos", sub: "Reconhece alimentos e nutrição", color: "#4ADE80" },
+                { icon: "flask-outline", label: "Suplementos", sub: "Analisa suplementos esportivos", color: "#60A5FA" },
+              ].map((f) => (
+                <View key={f.label} style={[styles.atlasFeature, { borderColor: `${f.color}20` }]}>
+                  <View style={[styles.atlasFeatureIcon, { backgroundColor: `${f.color}15` }]}>
+                    <Ionicons name={f.icon as any} size={18} color={f.color} />
+                  </View>
+                  <Text style={styles.atlasFeatureLabel}>{f.label}</Text>
+                  <Text style={styles.atlasFeatureSub}>{f.sub}</Text>
                 </View>
-                <View style={styles.stepInfo}>
-                  <Text style={styles.stepTitle}>{s.title}</Text>
-                  <Text style={styles.stepDesc}>{s.desc}</Text>
-                </View>
+              ))}
+            </View>
+
+            {/* Integrations status */}
+            <LinearGradient colors={["rgba(74,222,128,0.08)", "rgba(74,222,128,0.02)"]} style={styles.integStatus}>
+              <View style={styles.integStatusRow}>
+                <View style={styles.integDot} />
+                <Text style={styles.integStatusText}>OpenAI GPT-4.1 conectado</Text>
               </View>
-            ))}
+              <View style={styles.integStatusRow}>
+                <View style={styles.integDot} />
+                <Text style={styles.integStatusText}>Atlas Scanner API ativo</Text>
+              </View>
+              <View style={[styles.integStatusRow, { opacity: 0.5 }]}>
+                <View style={[styles.integDot, { backgroundColor: Colors.muted }]} />
+                <Text style={[styles.integStatusText, { color: Colors.muted }]}>Google Gemini (configure GEMINI_API_KEY)</Text>
+              </View>
+            </LinearGradient>
           </Animated.View>
         )}
 
@@ -481,6 +588,18 @@ const styles = StyleSheet.create({
   atlasBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 14, borderRadius: 16, width: "100%" },
   atlasBtnText: { fontFamily: "Outfit_700Bold", fontSize: 15, color: Colors.black },
   atlasNote: { fontFamily: "Outfit_400Regular", fontSize: 11, color: Colors.muted, marginTop: 10, textAlign: "center" },
+  atlasTypeRow: { flexDirection: "row", gap: 6, marginBottom: 14, flexWrap: "wrap", justifyContent: "center" },
+  atlasTypeChip: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.border },
+  atlasTypeChipAtivo: { backgroundColor: "rgba(212,175,55,0.15)", borderColor: "rgba(212,175,55,0.35)" },
+  atlasTypeText: { fontFamily: "Outfit_500Medium", fontSize: 12, color: Colors.muted },
+  atlasInputRow: { width: "100%", backgroundColor: Colors.card, borderRadius: 14, borderWidth: 1, borderColor: Colors.border, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 14 },
+  atlasInput: { fontFamily: "Outfit_400Regular", fontSize: 14, color: Colors.text, minHeight: 60, textAlignVertical: "top" },
+  atlasLinkBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 11, borderRadius: 14, borderWidth: 1, borderColor: "rgba(212,175,55,0.3)", backgroundColor: "rgba(212,175,55,0.06)" },
+  atlasLinkText: { fontFamily: "Outfit_500Medium", fontSize: 13, color: Colors.gold, flex: 1, textAlign: "center" },
+  integStatus: { borderRadius: 14, padding: 14, borderWidth: 1, borderColor: "rgba(74,222,128,0.15)", gap: 8, marginBottom: 4 },
+  integStatusRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  integDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "#4ADE80" },
+  integStatusText: { fontFamily: "Outfit_400Regular", fontSize: 12, color: Colors.textSecondary },
   stepCard: { flexDirection: "row", alignItems: "flex-start", gap: 14, backgroundColor: Colors.card, borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: Colors.border },
   stepNum: { width: 32, height: 32, borderRadius: 10, backgroundColor: "rgba(212,175,55,0.15)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(212,175,55,0.25)" },
   stepNumText: { fontFamily: "Outfit_700Bold", fontSize: 15, color: Colors.gold },

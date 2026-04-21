@@ -11,7 +11,7 @@
 ## Stack
 - **Frontend**: Expo (React Native) + Expo Router — arquivo base em `app/`
 - **Backend**: Express + TypeScript em `server/`
-- **Banco de Dados**: PostgreSQL via `DATABASE_URL` — 8 tabelas (users, programs, exercises, sessions, session_exercises, clients, prescriptions, scans)
+- **Banco de Dados**: PostgreSQL via `DATABASE_URL` — 9 tabelas (users, programs, exercises, sessions, session_exercises, clients, prescriptions, scans, user_files)
 - **Auth usuário**: JWT (30d), bcryptjs — rotas `/api/auth/*`
 - **Auth admin**: HMAC token via `/api/admin/login`
 - **Storage**: PostgreSQL persistente (`server/storage.ts`)

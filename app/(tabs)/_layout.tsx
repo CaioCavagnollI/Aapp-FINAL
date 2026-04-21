@@ -71,6 +71,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="uploads"
+        options={{
+          title: "Arquivos",
+          tabBarIcon: ({ color }) => <TabIcon name="cloud-upload-outline" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="prescrever"
         options={{
           title: "Prescrever",
