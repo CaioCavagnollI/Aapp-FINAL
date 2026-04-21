@@ -177,7 +177,7 @@ export default function PerfilScreen() {
 
             {showUpgrade && (
               <Pressable
-                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push("/(tabs)/loja"); }}
+                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push("/(tabs)/planos"); }}
                 style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
               >
                 <LinearGradient colors={[Colors.goldDark, Colors.gold]} style={styles.upgradeBtn}>
@@ -209,14 +209,14 @@ export default function PerfilScreen() {
             icon="diamond-outline"
             label="Meu Plano"
             sub={planLabel}
-            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push("/(tabs)/loja"); }}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push("/(tabs)/planos"); }}
           />
           <View style={styles.divider} />
           <MenuItem
             icon="card-outline"
             label="Pagamento"
             sub={isPro ? "Plano ativo" : "Nenhum método cadastrado"}
-            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push("/(tabs)/loja"); }}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.push("/(tabs)/planos"); }}
           />
         </MenuSection>
 

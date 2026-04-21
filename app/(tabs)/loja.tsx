@@ -192,6 +192,18 @@ export default function AtlasStoreScreen() {
             </Animated.View>
           ))}
 
+          {/* CTA para página de planos completa */}
+          <Pressable
+            style={styles.planosFullBtn}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); router.push("/(tabs)/planos"); }}
+          >
+            <LinearGradient colors={[Colors.gold, Colors.goldDark]} style={styles.planosFullBtnGrad}>
+              <Ionicons name="diamond-outline" size={18} color="#000" />
+              <Text style={styles.planosFullBtnText}>Ver Planos & Pagamentos Completos</Text>
+              <Ionicons name="arrow-forward" size={16} color="#000" />
+            </LinearGradient>
+          </Pressable>
+
           {/* Métodos de pagamento */}
           <View style={[styles.pgtoCard, { backgroundColor: cardBg, borderColor }]}>
             <Text style={[styles.pgtoTitle, { color: textColor }]}>Métodos de Pagamento Aceitos</Text>
@@ -422,6 +434,9 @@ const styles = StyleSheet.create({
   planoRecurso: { fontFamily: "Outfit_400Regular", fontSize: 13 },
   assinBtn: { borderRadius: 12, paddingVertical: 12, alignItems: "center", marginTop: 16 },
   assinBtnText: { color: "#000", fontFamily: "Outfit_700Bold", fontSize: 14 },
+  planosFullBtn: { borderRadius: 16, overflow: "hidden", marginBottom: 14 },
+  planosFullBtnGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 14, paddingHorizontal: 20 },
+  planosFullBtnText: { fontFamily: "Outfit_700Bold", fontSize: 14, color: "#000", flex: 1, textAlign: "center" },
   pgtoCard: { borderRadius: 14, padding: 14, borderWidth: 1, marginTop: 8, marginBottom: 8 },
   pgtoTitle: { fontFamily: "Outfit_700Bold", fontSize: 14, marginBottom: 12 },
   pgtoRow: { flexDirection: "row", justifyContent: "space-around" },

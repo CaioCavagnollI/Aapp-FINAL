@@ -96,6 +96,14 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="planos"
+        options={{
+          title: "Planos",
+          href: null,
+          tabBarIcon: ({ color }) => <TabIcon name="diamond-outline" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="treino"
         options={{
           title: "Treino",

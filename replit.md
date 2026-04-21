@@ -98,15 +98,24 @@ GET    /api/admin/users         # Admin: listar usuários
 GET    /api/admin/metrics       # Admin: métricas
 ```
 
-## Planos de Assinatura
+## Planos de Assinatura (v2 — Atualizado)
 | Plano | Mensal | Anual | Acesso |
 |---|---|---|---|
-| free | - | - | Básico |
-| starter_monthly | R$ 29 | - | Atlas Brain + Scanner |
-| starter_annual | - | R$ 249 | Starter anual |
-| pro_monthly | R$ 59 | - | Tudo + Mentores + Acadêmico |
-| pro_annual | - | R$ 499 | Pro anual |
-| vitalicio | - | R$ 997 | Acesso vitalício |
+| free | R$ 0 | — | Básico (IA 5×/mês, Scanner 5×/dia, 1 programa) |
+| pro_monthly / pro_annual | R$ 19 | R$ 190,90 | IA 50×, Scanner 50×, 10 clientes, 10 programas |
+| pro_plus_monthly / pro_plus_annual | R$ 59,90 | R$ 590,90 | IA 500×, clientes ∞, mentorias, acadêmico, loja |
+| university_monthly / university_annual | R$ 99,90 | R$ 899,90 | Pro+ + Editorial Pro + API + Multi-user |
+| vitalicio | — | R$ 997 | Admin exclusivo — tudo ilimitado |
+
+## Documentação Gerada
+- `readme.md` — README principal
+- `master_doc.md` — Documento mestre completo
+- `documento_mao.md` — Guia do operador
+- `architeture.md` — Arquitetura do sistema
+- `arvore_final.md` — Árvore de arquivos
+- `modulos.md` — Módulos do sistema
+- `submodulos.md` — Sub-módulos e componentes
+- `nexus-atlas-final.tar.gz` — Código fonte para download
 
 ## Tabelas do Banco
 - users · programs · sessions · session_exercises · clients · prescriptions

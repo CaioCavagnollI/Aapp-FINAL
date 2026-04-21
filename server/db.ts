@@ -14,8 +14,37 @@ export async function initDb(): Promise<void> {
       email TEXT,
       plan TEXT NOT NULL DEFAULT 'free',
       is_admin BOOLEAN NOT NULL DEFAULT false,
+      workspace_id UUID,
+      tenant_id UUID,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS workspaces (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      name TEXT NOT NULL,
+      description TEXT,
+      owner_id UUID,
+      plan TEXT NOT NULL DEFAULT 'free',
+      max_users INTEGER NOT NULL DEFAULT 5,
+      is_active BOOLEAN NOT NULL DEFAULT true,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tenants (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      name TEXT NOT NULL,
+      domain TEXT,
+      plan TEXT NOT NULL DEFAULT 'university',
+      max_workspaces INTEGER NOT NULL DEFAULT 3,
+      max_users INTEGER NOT NULL DEFAULT 50,
+      is_active BOOLEAN NOT NULL DEFAULT true,
+      billing_email TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
     )
   `);
 
@@ -110,9 +139,16 @@ export async function initDb(): Promise<void> {
       size BIGINT NOT NULL DEFAULT 0,
       mime_type TEXT,
       ext TEXT,
+      folder TEXT DEFAULT 'Geral',
       uploaded_at TIMESTAMPTZ DEFAULT NOW()
     )
   `);
+
+  // Add folder column if missing (migration)
+  await pool.query(`ALTER TABLE user_files ADD COLUMN IF NOT EXISTS folder TEXT DEFAULT 'Geral'`);
+  // Add workspace_id and tenant_id to users if missing (migration)
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS workspace_id UUID`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS tenant_id UUID`);
 }
 
 export { pool };

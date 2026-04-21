@@ -552,6 +552,101 @@ ${notes ? `- Observações: ${notes}` : ""}`;
     }
   });
 
+  // ===== ADMIN WORKSPACES =====
+
+  app.get("/api/admin/workspaces", adminMiddleware, async (_req, res) => {
+    try {
+      const workspaces = await storage.getWorkspaces();
+      res.json({ workspaces });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao buscar workspaces" });
+    }
+  });
+
+  app.post("/api/admin/workspaces", adminMiddleware, async (req, res) => {
+    try {
+      const { name, description, owner_id, plan, max_users } = req.body;
+      if (!name) return res.status(400).json({ error: "Nome obrigatório" });
+      const workspace = await storage.createWorkspace({ name, description, owner_id, plan, max_users });
+      res.status(201).json({ workspace });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao criar workspace" });
+    }
+  });
+
+  app.put("/api/admin/workspaces/:id", adminMiddleware, async (req, res) => {
+    try {
+      const workspace = await storage.updateWorkspace(req.params["id"], req.body);
+      res.json({ workspace });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao atualizar workspace" });
+    }
+  });
+
+  app.delete("/api/admin/workspaces/:id", adminMiddleware, async (req, res) => {
+    try {
+      await storage.deleteWorkspace(req.params["id"]);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao excluir workspace" });
+    }
+  });
+
+  // ===== ADMIN TENANTS =====
+
+  app.get("/api/admin/tenants", adminMiddleware, async (_req, res) => {
+    try {
+      const tenants = await storage.getTenants();
+      res.json({ tenants });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao buscar tenants" });
+    }
+  });
+
+  app.post("/api/admin/tenants", adminMiddleware, async (req, res) => {
+    try {
+      const { name, domain, plan, max_workspaces, max_users, billing_email } = req.body;
+      if (!name) return res.status(400).json({ error: "Nome obrigatório" });
+      const tenant = await storage.createTenant({ name, domain, plan, max_workspaces, max_users, billing_email });
+      res.status(201).json({ tenant });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao criar tenant" });
+    }
+  });
+
+  app.put("/api/admin/tenants/:id", adminMiddleware, async (req, res) => {
+    try {
+      const tenant = await storage.updateTenant(req.params["id"], req.body);
+      res.json({ tenant });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao atualizar tenant" });
+    }
+  });
+
+  app.delete("/api/admin/tenants/:id", adminMiddleware, async (req, res) => {
+    try {
+      await storage.deleteTenant(req.params["id"]);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao excluir tenant" });
+    }
+  });
+
+  // ===== ADMIN REVENUE =====
+
+  app.get("/api/admin/revenue", adminMiddleware, async (_req, res) => {
+    try {
+      const metrics = await storage.getAppMetrics();
+      res.json({
+        estimated_monthly: metrics.estimated_monthly_revenue,
+        plan_distribution: metrics.plan_distribution,
+        growth_30d: metrics.growth_30d,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao buscar receita" });
+    }
+  });
+
   // ===== TRAINER PROFILES (Prescrição Premium) =====
 
   app.get("/api/trainer-profiles", async (_req, res) => {

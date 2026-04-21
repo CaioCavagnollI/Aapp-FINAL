@@ -6,3 +6,9 @@ id = "aYItAUtKmVQ2bE_7GUQvf"
 uri = "file://nexus-source-code.tar.gz"
 type = "unspecified"
 title = "Nexus App — Código-Fonte Completo (.tar.gz)"
+
+[[outputs]]
+id = "euLMfO_O0wX7tPi3VL-PW"
+uri = "file://nexus-atlas-final.tar.gz"
+type = "unspecified"
+title = "Nexus Atlas — Código Fonte Completo (v1.0.0)"

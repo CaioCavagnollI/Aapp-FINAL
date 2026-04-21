@@ -282,7 +282,7 @@ export async function createScan(data: {
 
 // ---- ADMIN ----
 export async function getAllUsers(): Promise<User[]> {
-  const r = await pool.query("SELECT id, username, plan, is_admin, created_at FROM users ORDER BY created_at DESC");
+  const r = await pool.query("SELECT id, username, email, plan, is_admin, workspace_id, tenant_id, created_at FROM users ORDER BY created_at DESC");
   return r.rows;
 }
 
@@ -290,9 +290,20 @@ export async function deleteUser(id: string): Promise<void> {
   await pool.query("DELETE FROM users WHERE id = $1", [id]);
 }
 
+const PLAN_PRICES: Record<string, number> = {
+  pro_monthly: 19,
+  pro_annual: 190.90 / 12,
+  pro_plus_monthly: 59.90,
+  pro_plus_annual: 590.90 / 12,
+  university_monthly: 99.90,
+  university_annual: 899.90 / 12,
+  vitalicio: 0,
+  free: 0,
+};
+
 export async function getAppMetrics() {
   const usersR = await pool.query("SELECT COUNT(*) as count FROM users");
-  const proR = await pool.query("SELECT COUNT(*) as count FROM users WHERE plan IN ('pro_monthly','pro_annual','vitalicio')");
+  const proR = await pool.query("SELECT COUNT(*) as count FROM users WHERE plan NOT IN ('free')");
   const sessionsR = await pool.query("SELECT COUNT(*) as count FROM sessions");
   const scansR = await pool.query("SELECT COUNT(*) as count FROM scans");
   const prescriptionsR = await pool.query("SELECT COUNT(*) as count FROM prescriptions");
@@ -302,15 +313,119 @@ export async function getAppMetrics() {
   const planDistR = await pool.query(
     "SELECT plan, COUNT(*) as count FROM users GROUP BY plan ORDER BY count DESC"
   );
+  // Calculate estimated monthly revenue
+  let estimated_revenue = 0;
+  for (const row of planDistR.rows) {
+    estimated_revenue += (PLAN_PRICES[row.plan] || 0) * parseInt(row.count);
+  }
+  // Growth over 30 days
+  const growthR = await pool.query(`
+    SELECT DATE_TRUNC('day', created_at) as day, COUNT(*) as count
+    FROM users
+    WHERE created_at >= NOW() - INTERVAL '30 days'
+    GROUP BY day ORDER BY day
+  `);
+  // Workspaces and tenants counts
+  let workspacesCount = 0, tenantsCount = 0;
+  try {
+    const wR = await pool.query("SELECT COUNT(*) as count FROM workspaces");
+    workspacesCount = parseInt(wR.rows[0].count);
+    const tR = await pool.query("SELECT COUNT(*) as count FROM tenants");
+    tenantsCount = parseInt(tR.rows[0].count);
+  } catch {}
+
   return {
     total_users: parseInt(usersR.rows[0].count),
-    pro_users: parseInt(proR.rows[0].count),
+    paid_users: parseInt(proR.rows[0].count),
     total_sessions: parseInt(sessionsR.rows[0].count),
     total_scans: parseInt(scansR.rows[0].count),
     total_prescriptions: parseInt(prescriptionsR.rows[0].count),
     new_users_7d: parseInt(newUsersR.rows[0].count),
     plan_distribution: planDistR.rows,
+    estimated_monthly_revenue: Math.round(estimated_revenue * 100) / 100,
+    growth_30d: growthR.rows,
+    workspaces: workspacesCount,
+    tenants: tenantsCount,
   };
+}
+
+// ---- WORKSPACES ----
+export interface Workspace {
+  id: string;
+  name: string;
+  description?: string;
+  owner_id?: string;
+  plan: string;
+  max_users: number;
+  is_active: boolean;
+  created_at: Date;
+}
+
+export async function getWorkspaces(): Promise<Workspace[]> {
+  try {
+    const r = await pool.query("SELECT w.*, u.username as owner_name FROM workspaces w LEFT JOIN users u ON w.owner_id = u.id ORDER BY w.created_at DESC");
+    return r.rows;
+  } catch { return []; }
+}
+
+export async function createWorkspace(data: { name: string; description?: string; owner_id?: string; plan?: string; max_users?: number }): Promise<Workspace> {
+  const r = await pool.query(
+    "INSERT INTO workspaces (name, description, owner_id, plan, max_users) VALUES ($1,$2,$3,$4,$5) RETURNING *",
+    [data.name, data.description || null, data.owner_id || null, data.plan || 'free', data.max_users || 5]
+  );
+  return r.rows[0];
+}
+
+export async function updateWorkspace(id: string, data: Partial<Workspace>): Promise<Workspace> {
+  const r = await pool.query(
+    "UPDATE workspaces SET name=COALESCE($1,name), is_active=COALESCE($2,is_active), plan=COALESCE($3,plan) WHERE id=$4 RETURNING *",
+    [data.name, data.is_active, data.plan, id]
+  );
+  return r.rows[0];
+}
+
+export async function deleteWorkspace(id: string): Promise<void> {
+  await pool.query("DELETE FROM workspaces WHERE id=$1", [id]);
+}
+
+// ---- TENANTS ----
+export interface Tenant {
+  id: string;
+  name: string;
+  domain?: string;
+  plan: string;
+  max_workspaces: number;
+  max_users: number;
+  is_active: boolean;
+  billing_email?: string;
+  created_at: Date;
+}
+
+export async function getTenants(): Promise<Tenant[]> {
+  try {
+    const r = await pool.query("SELECT * FROM tenants ORDER BY created_at DESC");
+    return r.rows;
+  } catch { return []; }
+}
+
+export async function createTenant(data: { name: string; domain?: string; plan?: string; max_workspaces?: number; max_users?: number; billing_email?: string }): Promise<Tenant> {
+  const r = await pool.query(
+    "INSERT INTO tenants (name, domain, plan, max_workspaces, max_users, billing_email) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *",
+    [data.name, data.domain || null, data.plan || 'university', data.max_workspaces || 3, data.max_users || 50, data.billing_email || null]
+  );
+  return r.rows[0];
+}
+
+export async function updateTenant(id: string, data: Partial<Tenant>): Promise<Tenant> {
+  const r = await pool.query(
+    "UPDATE tenants SET name=COALESCE($1,name), is_active=COALESCE($2,is_active), plan=COALESCE($3,plan) WHERE id=$4 RETURNING *",
+    [data.name, data.is_active, data.plan, id]
+  );
+  return r.rows[0];
+}
+
+export async function deleteTenant(id: string): Promise<void> {
+  await pool.query("DELETE FROM tenants WHERE id=$1", [id]);
 }
 
 // ---- STORE PRODUCTS ----
